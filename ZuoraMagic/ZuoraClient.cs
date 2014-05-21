@@ -13,6 +13,8 @@ using ZuoraMagic.SoapApi;
 
 namespace ZuoraMagic
 {
+    // TODO: Abstract out query more call, include it in a call that loops if request limit is higher 2000
+    // TODO: Implement '    limit'
     public class ZuoraClient : IDisposable
     {
         #region Private Fields
@@ -86,11 +88,29 @@ namespace ZuoraMagic
             }
         }
 
-        public virtual IEnumerable<T> Query<T>(Expression<Func<T, bool>> predicate, int limit = 0) where T : ZObject
+        /// <summary>
+        ///     Generic predicate query method.
+        ///      - Defaults to a limit of 2000. If a higher
+        ///        limit is specified, ZuoraMagic will implement the
+        ///        'queryMore' SOAPAction to capture all results.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="predicate"></param>
+        /// <returns></returns>
+        public virtual IEnumerable<T> Query<T>(Expression<Func<T, bool>> predicate) where T : ZObject
         {
-            return PerformArrayRequest<T>(SoapRequestManager.GetQueryRequest(predicate, limit, Login()));
+            return PerformArrayRequest<T>(SoapRequestManager.GetQueryRequest(predicate, Login()));
         }
 
+        /// <summary>
+        ///     Generic string query method
+        ///      - Defaults to a limit of 2000. If a higher
+        ///        limit is specified, ZuoraMagic will implement the
+        ///        'queryMore' SOAPAction to capture all results.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="query"></param>
+        /// <returns></returns>
         public virtual IEnumerable<T> Query<T>(string query)
         {
             // TODO: Validate query

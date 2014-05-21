@@ -28,9 +28,9 @@ namespace ZuoraMagic.SoapApi
             return request;
         }
 
-        public static HttpRequest GetQueryRequest<T>(Expression<Func<T, bool>> predicate, int limit, ZuoraSession session) where T : ZObject
+        public static HttpRequest GetQueryRequest<T>(Expression<Func<T, bool>> predicate, ZuoraSession session) where T : ZObject
         {
-            string query = QueryBuilder.GenerateQuery(predicate, limit);
+            string query = QueryBuilder.GenerateQuery(predicate);
             return GetQueryRequest(query, session);
         }
 
