@@ -3,7 +3,6 @@ using ZuoraMagic.Entities;
 using ZuoraMagic.Http;
 using ZuoraMagic.ORM.BaseRequestTemplates;
 using ZuoraMagic.SoapApi.Enum;
-using ZuoraMagic.SoapApi.Models;
 using ZuoraMagic.SoapApi.RequestTemplates;
 
 namespace ZuoraMagic.SoapApi
@@ -18,22 +17,17 @@ namespace ZuoraMagic.SoapApi
             });
         }
 
-        internal static string Query(QueryRequest query, string sessionId)
+        internal static string Query(string query, string sessionId)
         {
             return XmlRequestGenerator.GenerateRequest(new XmlBody
             {
-                QueryTemplate = new QueryTemplate(query.QueryString)
+                QueryTemplate = new QueryTemplate(query)
             },
             new XmlHeader
             {
                 SessionHeader = new SessionHeader
                 {
                     SessionId = sessionId,
-                },
-                QueryOptions = new QueryOptions
-                {
-                    BatchSize = query.BatchSize,
-                    CaseSensitive = query.CaseSensative
                 }
             });
         }

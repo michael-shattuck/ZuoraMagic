@@ -16,7 +16,11 @@ namespace ZuoraMagic.Extensions
 
         internal static IEnumerable<string> GetNames(this PropertyInfo[] infos)
         {
-            return infos.Select(x => x.GetName());
+            // TODO: There has to be a better way to do this, the Id field needs to be first.
+            List<string> names = new List<string> { GetName(infos.FirstOrDefault(x => x.Name == "Id")) };
+            names.AddRange(infos.Where(x => x.Name != "Id").Select(x => x.GetName()));
+
+            return names;
         }
 
         internal static string GetName(this PropertyInfo info)
@@ -28,13 +32,14 @@ namespace ZuoraMagic.Extensions
 
         internal static string GetName(this Type type)
         {
-            return type.GetCustomAttribute<ZuoraNameAttribute>().Name;
+            ZuoraNameAttribute attribute = type.GetCustomAttribute<ZuoraNameAttribute>();
+            return attribute != null ? attribute.Name : type.Name;
         }
 
         internal static string GetValue(this XmlNode node, string name)
         {
             var result = node[name];
             return result != null ? result.InnerText : null;
-        } 
+        }
     }
 }

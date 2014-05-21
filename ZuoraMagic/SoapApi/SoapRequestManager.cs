@@ -5,16 +5,18 @@ using ZuoraMagic.Entities;
 using ZuoraMagic.Http.Enums;
 using ZuoraMagic.Http.Models;
 using ZuoraMagic.ORM;
+using ZuoraMagic.SoapApi.Models;
 
 namespace ZuoraMagic.SoapApi
 {
     internal class SoapRequestManager
     {
-        internal static string SoapUrl = "/services/Soap/u/24.0";
+        internal static string SoapUrl = "/apps/services/a/54.0";
 
+        // TODO: Add configuration of endpoint
         internal static HttpRequest GetLoginRequest(ZuoraConfig config)
         {
-            string url = config.IsSandbox ? "https://test.salesforce.com" : "https://login.salesforce.com";
+            string url = config.IsSandbox ? "https://perfapps.zuora.com" : "https://www.zuora.com";
             HttpRequest request = new HttpRequest
             {
                 Url = url + SoapUrl,

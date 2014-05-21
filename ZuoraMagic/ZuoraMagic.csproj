@@ -59,6 +59,7 @@
     <Compile Include="Http\Enums\RequestType.cs" />
     <Compile Include="Http\HttpClient.cs" />
     <Compile Include="Http\Models\HttpRequest.cs" />
+    <Compile Include="Http\Models\SimpleLogin.cs" />
     <Compile Include="Http\XmlRequestGenerator.cs" />
     <Compile Include="LinqProvider\ZOQLVisitor.cs" />
     <Compile Include="ORM\BaseRequestTemplates\SessionHeader.cs" />
@@ -71,7 +72,7 @@
     <Compile Include="ORM\ResponseReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SoapApi\RequestTemplates\CallOptions.cs" />
-    <Compile Include="ZuoraMagicResponse.cs" />
+    <Compile Include="ZuoraResponse.cs" />
     <Compile Include="SoapApi\Enum\CrudOperations.cs" />
     <Compile Include="SoapApi\Models\QueryRequest.cs" />
     <Compile Include="SoapApi\RequestTemplates\CrudTemplate.cs" />

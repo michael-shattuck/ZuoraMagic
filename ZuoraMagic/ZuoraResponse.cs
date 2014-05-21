@@ -3,9 +3,9 @@ using ZuoraMagic.SoapApi.Responses;
 
 namespace ZuoraMagic
 {
-    public class ZuoraMagicResponse
+    public class ZuoraResponse
     {
-        public ZuoraMagicResponse()
+        public ZuoraResponse()
         {
             Errors = new List<string>();
             Results = new List<RecordResult>();

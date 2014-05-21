@@ -57,7 +57,7 @@ namespace ZuoraMagic.Configuration
 
         private string GenerateCacheKey(string environment)
         {
-            string storageName = SessionStoragePolicy.StorageKeyPrefix ?? "SalesforceMagic_" + AppDomain.CurrentDomain.FriendlyName;
+            string storageName = SessionStoragePolicy.StorageKeyPrefix ?? "ZuoraMagic_" + AppDomain.CurrentDomain.FriendlyName;
             return string.Format("{0}_{1}", storageName, environment);
         }
     }

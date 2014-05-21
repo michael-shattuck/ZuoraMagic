@@ -7,15 +7,16 @@ using System.Xml.Linq;
 using FastMember;
 using ZuoraMagic.Entities;
 using ZuoraMagic.Extensions;
+using ZuoraMagic.ORM.BaseRequestTemplates;
 using ZuoraMagic.SoapApi.Responses;
 
 namespace ZuoraMagic.ORM
 {
     internal static class ResponseReader
     {
-        internal static ZuoraMagicResponse ReadSimpleResponse(XmlDocument document)
+        internal static ZuoraResponse ReadSimpleResponse(XmlDocument document)
         {
-            ZuoraMagicResponse response = new ZuoraMagicResponse();
+            ZuoraResponse response = new ZuoraResponse();
             XmlNodeList results = GetNamedNodes(document, "result");
 
             if (results.Count > 1)
@@ -46,15 +47,15 @@ namespace ZuoraMagic.ORM
 
         internal static T ReadSimpleResponse<T>(XmlNode node, XmlDocument document)
         {
-            Type type = typeof (T);
-            bool ns = type.BaseType ==  typeof (ZObject);
+            Type type = typeof(T);
+            bool ns = type.BaseType == typeof(ZObject);
             T obj = Activator.CreateInstance<T>();
             TypeAccessor accessor = ObjectHydrator.GetAccessor(type);
 
             foreach (PropertyInfo property in type.GetProperties())
             {
                 Type propertyType = property.PropertyType;
-                string name = ns ? "sf:" + property.GetName() : property.GetName();
+                string name = ns ? "ns2:" + property.GetName() : property.GetName();
                 string value = node.GetValue(name);
 
                 if (value == null)
@@ -85,7 +86,7 @@ namespace ZuoraMagic.ORM
 
         private static XmlNodeList GetNamedNodes(XmlDocument document, string name)
         {
-            return document.GetElementsByTagName(name);
+            return document.GetElementsByTagName(name, ZuoraNamespaces.Request);
         }
 
         private static XElement[] GetNamedNodes(XmlNode node, string name)
