@@ -10,11 +10,10 @@ using ZuoraMagic.Http;
 using ZuoraMagic.Http.Models;
 using ZuoraMagic.ORM;
 using ZuoraMagic.SoapApi;
+using ZuoraMagic.SoapApi.Responses;
 
 namespace ZuoraMagic
 {
-    // TODO: Abstract out query more call, include it in a call that loops if request limit is higher 2000
-    // TODO: Implement '    limit'
     public class ZuoraClient : IDisposable
     {
         #region Private Fields
@@ -96,10 +95,11 @@ namespace ZuoraMagic
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="predicate"></param>
+        /// <param name="limit"></param>
         /// <returns></returns>
-        public virtual IEnumerable<T> Query<T>(Expression<Func<T, bool>> predicate) where T : ZObject
+        public virtual IEnumerable<T> Query<T>(Expression<Func<T, bool>> predicate, int limit = 0) where T : ZObject
         {
-            return PerformArrayRequest<T>(SoapRequestManager.GetQueryRequest(predicate, Login()));
+            return Query<T>(QueryBuilder.GenerateQuery(predicate), limit);
         }
 
         /// <summary>
@@ -110,21 +110,77 @@ namespace ZuoraMagic
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="query"></param>
+        /// <param name="limit"></param>
         /// <returns></returns>
-        public virtual IEnumerable<T> Query<T>(string query)
+        public virtual IEnumerable<T> Query<T>(string query, int limit = 0) where T : ZObject
         {
-            // TODO: Validate query
-            return PerformArrayRequest<T>(SoapRequestManager.GetQueryRequest(query, Login()));
+            query = QueryBuilder.ValidateAndFlattenQuery<T>(query);
+
+            return 2000 > limit 
+                ? PerformArrayRequest<T>(SoapRequestManager.GetQueryRequest(query, limit, Login())) 
+                : PerformAdvancedQuery<T>(query, limit);
         }
 
+        /// <summary>
+        ///     Generic predicate query method.
+        ///     Returns one record
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="predicate"></param>
+        /// <returns></returns>
         public virtual T QuerySingle<T>(Expression<Func<T, bool>> predicate) where T : ZObject
         {
-            return Query(predicate).FirstOrDefault();
+            return Query(predicate, 1).FirstOrDefault();
         }
 
-        public virtual T QuerySingle<T>(string query)
+        /// <summary>
+        ///     Generic string query method.
+        ///     Returns one record.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="query"></param>
+        /// <returns></returns>
+        public virtual T QuerySingle<T>(string query) where T : ZObject
         {
-            return Query<T>(query).FirstOrDefault();
+            return Query<T>(query, 1).FirstOrDefault();
+        }
+
+        /// <summary>
+        ///     Generic string query method implementing
+        ///     deeper Zuora API features. 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="query"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        public virtual QueryResult<T> PerformQuery<T>(string query, int limit = 0) where T : ZObject
+        {
+            return PerformGenericRequest<QueryResult<T>>(SoapRequestManager.GetQueryRequest(query, limit, Login()));
+        }
+
+        /// <summary>
+        ///     Generic predicate query method implementing
+        ///     deeper Zuora API features. 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="predicate"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        public virtual QueryResult<T> PerformQuery<T>(Expression<Func<T, bool>> predicate, int limit = 0) where T : ZObject
+        {
+            return PerformGenericRequest<QueryResult<T>>(SoapRequestManager.GetQueryRequest(predicate, limit, Login()));
+        }
+
+        /// <summary>
+        ///     Generic query more method.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="queryLocator"></param>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        public virtual QueryResult<T> PerformQueryMore<T>(string queryLocator, int limit = 0) where T : ZObject
+        {
+            return PerformGenericRequest<QueryResult<T>>(SoapRequestManager.GetQueryMoreRequest(queryLocator, limit, Login()));
         }
 
         #region Private Methods
@@ -154,6 +210,32 @@ namespace ZuoraMagic
                 XmlDocument response = httpClient.PerformRequest(request);
                 return ResponseReader.ReadArrayResponse<T>(response);
             }
+        }
+
+        private IEnumerable<T> PerformAdvancedQuery<T>(string query, int limit) where T : ZObject
+        {
+            List<T> records = new List<T>();
+            QueryResult<T> result = PerformQuery<T>(query);
+            if (!result.Done)
+            {
+                records.AddRange(CompleteQuery<T>(result.QueryLocator, limit));
+            }
+
+            return records;
+        }
+
+        private IEnumerable<T> CompleteQuery<T>(string queryLocator, int limit, int index = 0) where T : ZObject
+        {
+            QueryResult<T> result = PerformQueryMore<T>(queryLocator);
+            index = index + result.Records.Count();
+
+            List<T> records = new List<T>(result.Records);
+            if (!result.Done && index < limit)
+            {
+                records.AddRange(CompleteQuery<T>(result.QueryLocator, limit, index));
+            }
+
+            return records;
         }
 
         #endregion

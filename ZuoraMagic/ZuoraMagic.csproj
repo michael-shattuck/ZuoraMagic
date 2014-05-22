@@ -53,6 +53,7 @@
     <Compile Include="Configuration\ZuoraConfig.cs" />
     <Compile Include="Configuration\ZuoraSession.cs" />
     <Compile Include="Configuration\SessionStoragePolicy.cs" />
+    <Compile Include="SoapApi\Responses\QueryResult.cs" />
     <Compile Include="Entities\ZObject.cs" />
     <Compile Include="Exceptions\ZuoraRequestException.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
@@ -72,6 +73,7 @@
     <Compile Include="ORM\ResponseReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SoapApi\RequestTemplates\CallOptions.cs" />
+    <Compile Include="SoapApi\RequestTemplates\QueryMoreTemplate.cs" />
     <Compile Include="ZuoraResponse.cs" />
     <Compile Include="SoapApi\Enum\CrudOperations.cs" />
     <Compile Include="SoapApi\Models\QueryRequest.cs" />

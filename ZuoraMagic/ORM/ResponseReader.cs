@@ -55,31 +55,45 @@ namespace ZuoraMagic.ORM
             foreach (PropertyInfo property in type.GetProperties())
             {
                 Type propertyType = property.PropertyType;
-                string name = ns ? "ns2:" + property.GetName() : property.GetName();
-                string value = node.GetValue(name);
-
-                if (value == null)
+                string name = property.GetName();
+                if (name == "records")
                 {
-                    IEnumerable<XElement> nodes = GetNamedNodes(node, name);
-                    if (nodes == null || !nodes.Any()) continue;
-                    XElement child = nodes.FirstOrDefault();
-                    if (child == null) continue;
+                    // Not sure I like this. I might want to create a new response reader
+                    accessor[obj, property.Name] = ReadArrayResponse(Activator.CreateInstance(propertyType), document);
+                }
+                else
+                {
+                    if (ns) name = "ns2:" + name;
+                    string value = node.GetValue(name);
 
-                    value = child.Value;
-                };
+                    if (value == null)
+                    {
+                        IEnumerable<XElement> nodes = GetNamedNodes(node, name);
+                        if (nodes == null || !nodes.Any()) continue;
+                        XElement child = nodes.FirstOrDefault();
+                        if (child == null) continue;
 
-                if (propertyType == typeof(string)) accessor[obj, property.Name] = value;
-                if (propertyType == typeof(bool)) accessor[obj, property.Name] = Convert.ToBoolean(value);
-                if (propertyType == typeof(int)) accessor[obj, property.Name] = Convert.ToInt32(value);
-                if (propertyType == typeof(double)) accessor[obj, property.Name] = Convert.ToDouble(value);
-                if (propertyType == typeof(decimal)) accessor[obj, property.Name] = Convert.ToDecimal(value);
-                if (propertyType == typeof(DateTime)) accessor[obj, property.Name] = Convert.ToDateTime(value);
+                        value = child.Value;
+                    };
+
+                    if (propertyType == typeof(string)) accessor[obj, property.Name] = value;
+                    if (propertyType == typeof(bool)) accessor[obj, property.Name] = Convert.ToBoolean(value);
+                    if (propertyType == typeof(int)) accessor[obj, property.Name] = Convert.ToInt32(value);
+                    if (propertyType == typeof(double)) accessor[obj, property.Name] = Convert.ToDouble(value);
+                    if (propertyType == typeof(decimal)) accessor[obj, property.Name] = Convert.ToDecimal(value);
+                    if (propertyType == typeof(DateTime)) accessor[obj, property.Name] = Convert.ToDateTime(value);
+                }
             }
 
             return obj;
         }
 
         internal static T[] ReadArrayResponse<T>(XmlDocument document)
+        {
+            return (from XmlNode node in GetNamedNodes(document, "records") select ReadSimpleResponse<T>(node, document)).ToArray();
+        }
+
+        internal static T[] ReadArrayResponse<T>(T dummy, XmlDocument document)
         {
             return (from XmlNode node in GetNamedNodes(document, "records") select ReadSimpleResponse<T>(node, document)).ToArray();
         }

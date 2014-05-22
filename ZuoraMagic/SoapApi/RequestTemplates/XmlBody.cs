@@ -11,6 +11,9 @@ namespace ZuoraMagic.ORM.BaseRequestTemplates
         [XmlElement("query", Namespace = ZuoraNamespaces.Request)]
         public QueryTemplate QueryTemplate { get; set; }
 
+        [XmlElement("queryMore", Namespace = ZuoraNamespaces.Request)]
+        public QueryMoreTemplate QueryMoreTemplate { get; set; }
+
         [XmlElement("create", Namespace = ZuoraNamespaces.Request)]
         public BasicCrudTemplate InsertTemplate { get; set; }
 

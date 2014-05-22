@@ -17,31 +17,45 @@ namespace ZuoraMagic.SoapApi
             });
         }
 
-        internal static string Query(string query, string sessionId)
+        internal static string Query(string query, int limit, string sessionId)
         {
+            XmlHeader header = GenerateHeader(sessionId);
+
+            if (limit > 0)
+            {
+                header.QueryOptions = new QueryOptions
+                {
+                    BatchSize = limit
+                };
+            }
+
             return XmlRequestGenerator.GenerateRequest(new XmlBody
             {
                 QueryTemplate = new QueryTemplate(query)
-            },
-            new XmlHeader
+            }, header);
+        }
+
+        internal static string QueryMore(string queryLocator, int limit, string sessionId)
+        {
+            XmlHeader header = GenerateHeader(sessionId);
+
+            if (limit > 0)
             {
-                SessionHeader = new SessionHeader
+                header.QueryOptions = new QueryOptions
                 {
-                    SessionId = sessionId,
-                }
-            });
+                    BatchSize = limit
+                };
+            }
+
+            return XmlRequestGenerator.GenerateRequest(new XmlBody
+            {
+                QueryMoreTemplate = new QueryMoreTemplate(queryLocator)
+            }, header);
         }
 
         public static string CrudOperation<T>(CrudOperation<T> operation, string sessionId) where T : ZObject
         {
-            XmlBody body = GetCrudBody(operation);
-            return XmlRequestGenerator.GenerateRequest(body, new XmlHeader
-            {
-                SessionHeader = new SessionHeader
-                {
-                    SessionId = sessionId
-                }
-            });
+            return XmlRequestGenerator.GenerateRequest(GetCrudBody(operation), GenerateHeader(sessionId));
         }
 
         private static XmlBody GetCrudBody<T>(CrudOperation<T> operation) where T : ZObject
@@ -78,6 +92,17 @@ namespace ZuoraMagic.SoapApi
             }
 
             return body;
+        }
+
+        private static XmlHeader GenerateHeader(string sessionId)
+        {
+            return new XmlHeader
+            {
+                SessionHeader = new SessionHeader
+                {
+                    SessionId = sessionId,
+                }
+            };
         }
     }
 }
