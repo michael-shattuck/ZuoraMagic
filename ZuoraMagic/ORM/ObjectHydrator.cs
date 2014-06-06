@@ -22,12 +22,12 @@ namespace ZuoraMagic.ORM
             return accessor;
         }
 
-        internal static T ParseItem<T>(Type type, CsvReader parser, TypeAccessor accessor)
+        internal static T ParseItem<T>(Type type, CsvReader parser, TypeAccessor accessor, bool retrieveRelated)
             where T : ZObject
         {
             T obj = Activator.CreateInstance<T>();
 
-            foreach (PropertyInfo property in type.GetProperties())
+            foreach (PropertyInfo property in type.GetCachedProperties())
             {
                 string name = type.GetName() + "." + property.GetName();
                 string value;
@@ -44,7 +44,7 @@ namespace ZuoraMagic.ORM
                 SetProperty(obj, value, property, accessor);
             }
 
-            ParseRelations(obj, type, parser, accessor);
+            if (retrieveRelated) ParseRelations(obj, type, parser, accessor);
 
             return obj;
         }
@@ -63,7 +63,7 @@ namespace ZuoraMagic.ORM
                     propertyType = propertyType.GetGenericArguments()[0];
                     value = accessor[item, propertyName] ?? CreateGenericList(propertyType);
                     dynamic obj = ParseItem(propertyType, parser, GetAccessor(propertyType));
-                    var actualValue = Cast(value, CreateGenericList(obj, CastList(obj, value)));
+                    dynamic actualValue = Cast(value, CreateGenericList(obj, CastList(obj, value)));
                     accessor[item, propertyName] = actualValue;
                     continue;
                 }
@@ -89,7 +89,7 @@ namespace ZuoraMagic.ORM
 
         private static ZObject ParseItem(Type type, CsvReader parser, TypeAccessor accessor)
         {
-            var obj = Activator.CreateInstance(type);
+            object obj = Activator.CreateInstance(type);
 
             foreach (PropertyInfo property in type.GetPrimitiveProperties())
             {
@@ -131,12 +131,14 @@ namespace ZuoraMagic.ORM
         {
             return (T)obj;
         }
+
         public static IEnumerable<T> CastList<T>(T previous, object obj)
         {
             return (IEnumerable<T>)obj;
         }
 
-        public static void ParseItem<T>(T obj, Type type, CsvReader parser, TypeAccessor accessor) where T : ZObject
+        public static void CombineRelations<T>(T obj, Type type, CsvReader parser, TypeAccessor accessor)
+            where T : ZObject
         {
             ParseRelations(obj, type, parser, accessor);
         }

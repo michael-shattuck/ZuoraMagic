@@ -25,7 +25,7 @@ namespace ZuoraMagic.Entities
             TypeAccessor accessor = ObjectHydrator.GetAccessor(type);
             writer.WriteAttributeString("type", ZuoraNamespaces.Type, "obj:" + type.GetName());
 
-            foreach (PropertyInfo info in type.GetProperties())
+            foreach (PropertyInfo info in type.GetCachedProperties())
             {
                 var value = accessor[this, info.Name];
                 if (value != null) writer.WriteElementString(info.GetName(), ZuoraNamespaces.ZObject, value.ToString());

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using ZuoraMagic.Entities;
 using ZuoraMagic.Extensions;
@@ -8,21 +10,42 @@ namespace ZuoraMagic.ORM
 {
     public static class QueryBuilder
     {
-        public static string GenerateQuery<T>() where T : ZObject
+        internal static string GenerateExportQuery<T>(bool retrieveRelated, int limit = 0) where T : ZObject
         {
             Type type = typeof(T);
+            string query = CompileExportSelectStatements(type, retrieveRelated);
+            if (limit > 0) AddLimit(ref query, limit);
+
+            return query;
+        }
+
+
+        internal static string GenerateExportQuery<T>(Expression<Func<T, bool>> predicate, bool retrieveRelated, int limit = 0)
+            where T : ZObject
+        {
+            Type type = typeof(T);
+            string query = CompileExportSelectStatements(type, retrieveRelated);
+            if (predicate != null) AddConditionsSet(ref query, predicate);
+            if (limit > 0) AddLimit(ref query, limit);
+
+            return query;
+        }
+
+        internal static string GenerateQuery<T>()
+            where T : ZObject
+        {
+            Type type = typeof (T);
             string query = CompileSelectStatements(type);
 
             return query;
         }
 
-        public static string GenerateQuery<T>(Expression<Func<T, bool>> predicate, int limit = 0)
+        internal static string GenerateQuery<T>(Expression<Func<T, bool>> predicate)
             where T : ZObject
         {
-            Type type = typeof(T);
+            Type type = typeof (T);
             string query = CompileSelectStatements(type);
             if (predicate != null) AddConditionsSet(ref query, predicate);
-            if (limit > 0) AddLimit(ref query, limit);
 
             return query;
         }
@@ -37,6 +60,26 @@ namespace ZuoraMagic.ORM
             return string.Format("SELECT {0} FROM {1}", CompilePropertyNames(type), type.GetName());
         }
 
+        private static string CompileExportSelectStatements(Type type, bool retrieveRelated)
+        {
+            if (retrieveRelated)
+            {
+                string[] properties = type.GetRelationNames().ToArray();
+                string propertySelectString = string.Empty;
+                for (int i = 0; i < properties.Length; i++)
+                {
+                    if (i < properties.Length - 1)
+                        propertySelectString = propertySelectString + string.Format("{0}.*, ", properties[i]);
+                    else
+                        propertySelectString = propertySelectString + string.Format("{0}.*", properties[i]);
+                }
+
+                return string.Format("SELECT {0}.*, {1} FROM {0}", type.Name, propertySelectString);
+            }
+
+            return string.Format("SELECT {0}.* FROM {0}", type.Name);
+        }
+
         private static void AddConditionsSet<T>(ref string query, Expression<Func<T, bool>> predicate)
         {
             if (predicate != null)
@@ -48,9 +91,9 @@ namespace ZuoraMagic.ORM
             return string.Join(", ", type.GetPropertyNames());
         }
 
-        public static string ValidateAndFlattenQuery<T>(string query)  where T : ZObject
+        internal static string ValidateAndFlattenQuery<T>(string query) where T : ZObject
         {
-            Type type = typeof(T);
+            Type type = typeof (T);
             if (query.Contains("*"))
             {
                 query = query.Replace("*", CompilePropertyNames(type));

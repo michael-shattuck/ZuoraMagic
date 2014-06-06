@@ -10,9 +10,11 @@ namespace ZuoraMagic.Extensions
 {
     internal static class TypeExtensions
     {
+        private static readonly IDictionary<string, IEnumerable<PropertyInfo>> PropertyInfos = new Dictionary<string, IEnumerable<PropertyInfo>>();
+  
         internal static IEnumerable<string> GetPropertyNames(this Type type)
         {
-            return type.GetProperties().GetNames();
+            return type.GetCachedProperties().GetNames();
         }
 
         internal static IEnumerable<string> GetNames(this PropertyInfo[] infos)
@@ -39,7 +41,7 @@ namespace ZuoraMagic.Extensions
 
         internal static IEnumerable<PropertyInfo> GetObjectProperties(this Type type)
         {
-            return from property in type.GetProperties()
+            return from property in type.GetCachedProperties()
                 let propertyType = property.PropertyType
                 let zObjectType = typeof(ZObject)
                 where zObjectType.IsAssignableFrom(propertyType)
@@ -47,9 +49,16 @@ namespace ZuoraMagic.Extensions
                 select property;
         }
 
+        internal static IEnumerable<string> GetRelationNames(this Type type)
+        {
+            return type
+                .GetObjectProperties()
+                .Select(x => x.PropertyType.IsGenericType ? x.PropertyType.GenericTypeArguments[0].Name : x.PropertyType.Name);
+        }
+
         internal static IEnumerable<PropertyInfo> GetPrimitiveProperties(this Type type)
         {
-            return from property in type.GetProperties()
+            return from property in type.GetCachedProperties()
                    let propertyType = property.PropertyType
                    let zObjectType = typeof(ZObject)
                    where !zObjectType.IsAssignableFrom(propertyType) || !propertyType.IsGenericType
@@ -60,6 +69,31 @@ namespace ZuoraMagic.Extensions
         {
             var result = node[name];
             return result != null ? result.InnerText : null;
+        }
+
+        internal static PropertyInfo[] GetCachedProperties(this Type type)
+        {
+            PropertyInfo[] propertyInfos;
+
+            if (typeof (ZObject).IsAssignableFrom(type))
+            {
+                string name = type.Name;
+                if (PropertyInfos.ContainsKey(type.Name))
+                {
+                    propertyInfos = PropertyInfos[name].ToArray();
+                }
+                else
+                {
+                    propertyInfos = type.GetProperties().ToArray();
+                    PropertyInfos.Add(name, propertyInfos);
+                }
+            }
+            else
+            {
+                propertyInfos = type.GetProperties();
+            }
+
+            return propertyInfos;
         }
     }
 }

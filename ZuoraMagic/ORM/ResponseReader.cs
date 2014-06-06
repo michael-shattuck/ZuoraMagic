@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -56,7 +55,7 @@ namespace ZuoraMagic.ORM
             T obj = Activator.CreateInstance<T>();
             TypeAccessor accessor = ObjectHydrator.GetAccessor(type);
 
-            foreach (PropertyInfo property in type.GetProperties())
+            foreach (PropertyInfo property in type.GetCachedProperties())
             {
                 Type propertyType = property.PropertyType;
                 string name = property.GetName();
@@ -142,7 +141,7 @@ namespace ZuoraMagic.ORM
             }
         }
 
-        internal static IEnumerable<T> ReadExportRecords<T>(Stream stream) where T : ZObject
+        internal static IEnumerable<T> ReadExportRecords<T>(Stream stream, bool retrieveRelated) where T : ZObject
         {
             using (StreamReader streamReader = new StreamReader(stream))
             using (CsvReader parser = new CsvReader(streamReader, true))
@@ -156,12 +155,12 @@ namespace ZuoraMagic.ORM
                     string id = parser[type.GetName() + ".Id"];
                     if (!records.ContainsKey(id))
                     {
-                        T item = ObjectHydrator.ParseItem<T>(type, parser, accessor);
+                        T item = ObjectHydrator.ParseItem<T>(type, parser, accessor, retrieveRelated);
                         records.Add(id, item);
                     }
-                    else
+                    else if (retrieveRelated)
                     {
-                        ObjectHydrator.ParseItem(records[id], type, parser, accessor);
+                        ObjectHydrator.CombineRelations(records[id], type, parser, accessor);
                     }
                 }
 

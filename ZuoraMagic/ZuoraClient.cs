@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Net;
 using System.Xml;
-using LumenWorks.Framework.IO.Csv;
 using ZuoraMagic.Configuration;
 using ZuoraMagic.Configuration.Abstract;
 using ZuoraMagic.Entities;
@@ -21,6 +19,11 @@ using ZuoraMagic.SoapApi.Responses;
 
 namespace ZuoraMagic
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// TODO: Add export error check
+    /// TODO: Add auto export ability
     public class ZuoraClient : IDisposable
     {
         #region Private Fields
@@ -283,13 +286,19 @@ namespace ZuoraMagic
         public virtual ExportResult CreateExport(string query)
         {
             HttpRequest request = ExportRequestManager.GetCreateExportRequest(query, Login());
-            return PerformGenericRequest<ExportResult>(request); // TODO: We might need a custom performer
+            return PerformGenericRequest<ExportResult>(request);
         }
 
-        public virtual ExportResult CreateExport<T>(Expression<Func<T, bool>> predicate, int limit = 0)
+        public virtual ExportResult CreateExport<T>(Expression<Func<T, bool>> predicate, bool retrieveRelated, int limit = 0)
             where T : ZObject
         {
-            return CreateExport(QueryBuilder.GenerateQuery(predicate, limit));
+            return CreateExport(QueryBuilder.GenerateExportQuery(predicate, retrieveRelated, limit));
+        }
+
+        public virtual ExportResult CreateExport<T>(bool retrieveRelated, int limit = 0)
+            where T : ZObject
+        {
+            return CreateExport(QueryBuilder.GenerateExportQuery<T>(retrieveRelated, limit));
         }
 
         public virtual ExportResult CheckExportStatus(string id)
@@ -314,9 +323,9 @@ namespace ZuoraMagic
             return ResponseReader.ReadExportData(RetrieveExportStream(id));
         }
 
-        public virtual IEnumerable<T> RetrieveExportRecords<T>(string id) where T : ZObject
+        public virtual IEnumerable<T> RetrieveExportRecords<T>(string id, bool retrieveRelated = true) where T : ZObject
         {
-            return ResponseReader.ReadExportRecords<T>(RetrieveExportStream(id));
+            return ResponseReader.ReadExportRecords<T>(RetrieveExportStream(id), retrieveRelated);
         }
 
         #endregion
