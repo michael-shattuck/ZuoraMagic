@@ -56,6 +56,7 @@
     <Compile Include="Configuration\ZuoraConfig.cs" />
     <Compile Include="Configuration\ZuoraSession.cs" />
     <Compile Include="Configuration\SessionStoragePolicy.cs" />
+    <Compile Include="Entities\ExportResult.cs" />
     <Compile Include="ExportApi\ExportCommands.cs" />
     <Compile Include="ExportApi\ExportRequestManager.cs" />
     <Compile Include="ExportApi\Models\Export.cs" />

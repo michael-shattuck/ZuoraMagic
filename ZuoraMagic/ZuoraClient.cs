@@ -20,7 +20,7 @@ using ZuoraMagic.SoapApi.Responses;
 namespace ZuoraMagic
 {
     /// <summary>
-    /// 
+    ///     
     /// </summary>
     /// TODO: Add export error check
     /// TODO: Add auto export ability
@@ -409,12 +409,5 @@ namespace ZuoraMagic
         }
 
         #endregion
-    }
-
-    public class ExportResult
-    {
-        public string Id { get; set; }
-        public string FileId { get; set; }
-        public string Status { get; set; }
     }
 }

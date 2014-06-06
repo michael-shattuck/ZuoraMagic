@@ -49,27 +49,30 @@ namespace ZuoraMagic.ORM
             return obj;
         }
 
-        private static void ParseRelations<T>(T item, Type type, CsvReader parser, TypeAccessor accessor)
+        private static void ParseRelations<T>(T item, Type type, CsvReader parser, TypeAccessor accessor, Type parent = null)
             where T : ZObject
         {
             foreach (PropertyInfo property in type.GetObjectProperties())
             {
                 string propertyName = property.Name;
                 Type propertyType = property.PropertyType;
+                if (parent != null && property.PropertyType == parent) continue;
                 object value;
 
                 if (property.PropertyType.IsGenericType)
                 {
                     propertyType = propertyType.GetGenericArguments()[0];
+                    if (parent != null && property.PropertyType == parent) continue;
                     value = accessor[item, propertyName] ?? CreateGenericList(propertyType);
-                    dynamic obj = ParseItem(propertyType, parser, GetAccessor(propertyType));
+                    dynamic obj = ParseItem(propertyType, parser, GetAccessor(propertyType), type);
+                    if (obj == null) continue;
                     dynamic actualValue = Cast(value, CreateGenericList(obj, CastList(obj, value)));
                     accessor[item, propertyName] = actualValue;
                     continue;
                 }
 
                 if (accessor[item, propertyName] != null) continue;
-                value = ParseItem(propertyType, parser, GetAccessor(propertyType));
+                value = ParseItem(propertyType, parser, GetAccessor(propertyType), type);
                 if (value != null) accessor[item, propertyName] = value;
             }
         }
@@ -87,7 +90,7 @@ namespace ZuoraMagic.ORM
                 : new List<T> { obj };
         }
 
-        private static ZObject ParseItem(Type type, CsvReader parser, TypeAccessor accessor)
+        private static ZObject ParseItem(Type type, CsvReader parser, TypeAccessor accessor, Type parent = null)
         {
             object obj = Activator.CreateInstance(type);
 
@@ -110,7 +113,7 @@ namespace ZuoraMagic.ORM
                 SetProperty(obj, value, property, accessor);
             }
 
-            ParseRelations((ZObject)obj, type, parser, accessor);
+            ParseRelations((ZObject)obj, type, parser, accessor, parent);
 
             return (ZObject)obj;
         }
