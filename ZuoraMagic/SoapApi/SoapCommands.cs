@@ -7,8 +7,19 @@ using ZuoraMagic.SoapApi.RequestTemplates;
 
 namespace ZuoraMagic.SoapApi
 {
-    internal static class SoapCommands
+    /// <summary>
+    ///     Command generation for xml
+    ///     soap commands.
+    /// </summary>
+    internal class SoapCommands
     {
+        /// <summary>
+        ///     Soap Command Generator for the
+        ///     login command.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="password"></param>
+        /// <returns></returns>
         internal static string Login(string username, string password)
         {
             return XmlRequestGenerator.GenerateRequest(new XmlBody
@@ -53,12 +64,12 @@ namespace ZuoraMagic.SoapApi
             }, header);
         }
 
-        public static string CrudOperation<T>(CrudOperation<T> operation, string sessionId) where T : ZObject
+        internal static string CrudOperation<T>(CrudOperation<T> operation, string sessionId) where T : ZObject
         {
             return XmlRequestGenerator.GenerateRequest(GetCrudBody(operation), GenerateHeader(sessionId));
         }
 
-        private static XmlBody GetCrudBody<T>(CrudOperation<T> operation) where T : ZObject
+        protected static XmlBody GetCrudBody<T>(CrudOperation<T> operation) where T : ZObject
         {
             XmlBody body = new XmlBody();
 
@@ -68,13 +79,6 @@ namespace ZuoraMagic.SoapApi
                     body.InsertTemplate = new BasicCrudTemplate
                     {
                         ZObjects = operation.Items
-                    };
-                    break;
-                case CrudOperations.Upsert:
-                    body.UpsertTemplate = new UpsertTemplate
-                    {
-                        ZObjects = operation.Items,
-                        ExternalIdFieldName = operation.ExternalIdField
                     };
                     break;
                 case CrudOperations.Update:
@@ -94,7 +98,7 @@ namespace ZuoraMagic.SoapApi
             return body;
         }
 
-        private static XmlHeader GenerateHeader(string sessionId)
+        internal static XmlHeader GenerateHeader(string sessionId)
         {
             return new XmlHeader
             {

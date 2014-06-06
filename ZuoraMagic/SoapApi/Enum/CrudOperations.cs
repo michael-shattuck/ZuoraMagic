@@ -3,7 +3,6 @@
     public enum CrudOperations
     {
         Insert,
-        Upsert,
         Update,
         Delete
     }

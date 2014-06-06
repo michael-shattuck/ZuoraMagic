@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Xml;
 using ZuoraMagic.Attributes;
+using ZuoraMagic.Entities;
 
 namespace ZuoraMagic.Extensions
 {
@@ -34,6 +35,25 @@ namespace ZuoraMagic.Extensions
         {
             ZuoraNameAttribute attribute = type.GetCustomAttribute<ZuoraNameAttribute>();
             return attribute != null ? attribute.Name : type.Name;
+        }
+
+        internal static IEnumerable<PropertyInfo> GetObjectProperties(this Type type)
+        {
+            return from property in type.GetProperties()
+                let propertyType = property.PropertyType
+                let zObjectType = typeof(ZObject)
+                where zObjectType.IsAssignableFrom(propertyType)
+                || (propertyType.IsGenericType && zObjectType.IsAssignableFrom(propertyType.GetGenericArguments()[0]))
+                select property;
+        }
+
+        internal static IEnumerable<PropertyInfo> GetPrimitiveProperties(this Type type)
+        {
+            return from property in type.GetProperties()
+                   let propertyType = property.PropertyType
+                   let zObjectType = typeof(ZObject)
+                   where !zObjectType.IsAssignableFrom(propertyType) || !propertyType.IsGenericType
+                   select property;
         }
 
         internal static string GetValue(this XmlNode node, string name)

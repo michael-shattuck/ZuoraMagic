@@ -16,11 +16,10 @@ namespace ZuoraMagic.SoapApi
         // TODO: Add configuration of endpoint
         internal static HttpRequest GetLoginRequest(ZuoraConfig config)
         {
-            string url = config.IsSandbox ? "https://perfapps.zuora.com" : "https://www.zuora.com";
             HttpRequest request = new HttpRequest
             {
-                Url = url + SoapUrl,
-                Body = SoapCommands.Login(config.Username, config.Password + config.SecurityToken),
+                Url = config.InstanceUrl + SoapUrl,
+                Body = SoapCommands.Login(config.Username, config.Password),
                 Method = RequestType.POST,
             };
             request.Headers.Add("SOAPAction", "login");

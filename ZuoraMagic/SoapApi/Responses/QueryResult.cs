@@ -12,6 +12,9 @@ namespace ZuoraMagic.SoapApi.Responses
         [ZuoraName("queryLocator")]
         public string QueryLocator { get; set; }
 
+        [ZuoraName("size")]
+        public long TotalRecordCount { get; set; }
+
         [ZuoraName("done")]
         public bool Done { get; set; }
     }

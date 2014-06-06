@@ -13,7 +13,7 @@ namespace ZuoraMagic.SoapApi.RequestTemplates
         [XmlIgnore]
         public IEnumerable<ZObject> ZObjects { get; set; }
 
-        [XmlElement("ZObjects", Namespace = ZuoraNamespaces.Request)]
+        [XmlElement("zObjects", Namespace = ZuoraNamespaces.Request)]
         public List<ZObject> Items
         {
             get

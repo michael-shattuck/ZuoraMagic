@@ -1,15 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net;
 using System.Xml;
+using LumenWorks.Framework.IO.Csv;
 using ZuoraMagic.Configuration;
 using ZuoraMagic.Configuration.Abstract;
 using ZuoraMagic.Entities;
+using ZuoraMagic.Exceptions;
+using ZuoraMagic.ExportApi;
+using ZuoraMagic.ExportApi.Models;
 using ZuoraMagic.Http;
 using ZuoraMagic.Http.Models;
 using ZuoraMagic.ORM;
 using ZuoraMagic.SoapApi;
+using ZuoraMagic.SoapApi.Enum;
 using ZuoraMagic.SoapApi.Responses;
 
 namespace ZuoraMagic
@@ -17,15 +24,19 @@ namespace ZuoraMagic
     public class ZuoraClient : IDisposable
     {
         #region Private Fields
-        private readonly ISessionStoreProvider _sessionStore;
-        private readonly ZuoraConfig _config;
+
         private static readonly object Lock = new object();
+        private readonly ZuoraConfig _config;
+        private readonly ISessionStoreProvider _sessionStore;
+
         #endregion
+
+        #region Constructors
 
         /// <summary>
         ///     Constructor
-        ///      - Uses default memory store
-        ///      - Allows auto login
+        ///     - Uses default memory store
+        ///     - Allows auto login
         /// </summary>
         /// <param name="config"></param>
         /// <param name="login"></param>
@@ -36,8 +47,8 @@ namespace ZuoraMagic
 
         /// <summary>
         ///     Custom Constructor
-        ///      - Uses user defined store
-        ///      - Allows auto login
+        ///     - Uses user defined store
+        ///     - Allows auto login
         /// </summary>
         /// <param name="config"></param>
         /// <param name="sessionStore"></param>
@@ -49,9 +60,13 @@ namespace ZuoraMagic
             if (login) Login();
         }
 
+        #endregion
+
+        #region Session Methods
+
         /// <summary>
         ///     Login Action
-        ///      - Stores session data for re-use
+        ///     - Stores session data for re-use
         /// </summary>
         /// <returns></returns>
         public ZuoraSession Login()
@@ -61,7 +76,7 @@ namespace ZuoraMagic
                 ZuoraSession session;
                 if (_config.UseSessionStore)
                 {
-                    session = _sessionStore.RetrieveSession(_config.Environment ?? "Default");
+                    session = _sessionStore.RetrieveSession(_config.EnvironmentName ?? "Default");
                     if (session != null) return session;
                 }
 
@@ -87,11 +102,29 @@ namespace ZuoraMagic
             }
         }
 
+        #endregion
+
+        #region Query Methods
+
         /// <summary>
         ///     Generic predicate query method.
-        ///      - Defaults to a limit of 2000. If a higher
-        ///        limit is specified, ZuoraMagic will implement the
-        ///        'queryMore' SOAPAction to capture all results.
+        ///     - Defaults to a limit of 2000. If a higher
+        ///     limit is specified, ZuoraMagic will implement the
+        ///     'queryMore' SOAPAction to capture all results.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        public virtual IEnumerable<T> Query<T>(int limit = 0) where T : ZObject
+        {
+            return Query<T>(QueryBuilder.GenerateQuery<T>(), limit);
+        }
+
+        /// <summary>
+        ///     Generic predicate query method.
+        ///     - Defaults to a limit of 2000. If a higher
+        ///     limit is specified, ZuoraMagic will implement the
+        ///     'queryMore' SOAPAction to capture all results.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="predicate"></param>
@@ -104,9 +137,9 @@ namespace ZuoraMagic
 
         /// <summary>
         ///     Generic string query method
-        ///      - Defaults to a limit of 2000. If a higher
-        ///        limit is specified, ZuoraMagic will implement the
-        ///        'queryMore' SOAPAction to capture all results.
+        ///     - Defaults to a limit of 2000. If a higher
+        ///     limit is specified, ZuoraMagic will implement the
+        ///     'queryMore' SOAPAction to capture all results.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="query"></param>
@@ -116,8 +149,8 @@ namespace ZuoraMagic
         {
             query = QueryBuilder.ValidateAndFlattenQuery<T>(query);
 
-            return 2000 > limit 
-                ? PerformArrayRequest<T>(SoapRequestManager.GetQueryRequest(query, limit, Login())) 
+            return 2000 > limit
+                ? PerformArrayRequest<T>(SoapRequestManager.GetQueryRequest(query, limit, Login()))
                 : PerformAdvancedQuery<T>(query, limit);
         }
 
@@ -147,7 +180,7 @@ namespace ZuoraMagic
 
         /// <summary>
         ///     Generic string query method implementing
-        ///     deeper Zuora API features. 
+        ///     deeper Zuora API features.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="query"></param>
@@ -160,13 +193,14 @@ namespace ZuoraMagic
 
         /// <summary>
         ///     Generic predicate query method implementing
-        ///     deeper Zuora API features. 
+        ///     deeper Zuora API features.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="predicate"></param>
         /// <param name="limit"></param>
         /// <returns></returns>
-        public virtual QueryResult<T> PerformQuery<T>(Expression<Func<T, bool>> predicate, int limit = 0) where T : ZObject
+        public virtual QueryResult<T> PerformQuery<T>(Expression<Func<T, bool>> predicate, int limit = 0)
+            where T : ZObject
         {
             return PerformGenericRequest<QueryResult<T>>(SoapRequestManager.GetQueryRequest(predicate, limit, Login()));
         }
@@ -180,8 +214,112 @@ namespace ZuoraMagic
         /// <returns></returns>
         public virtual QueryResult<T> PerformQueryMore<T>(string queryLocator, int limit = 0) where T : ZObject
         {
-            return PerformGenericRequest<QueryResult<T>>(SoapRequestManager.GetQueryMoreRequest(queryLocator, limit, Login()));
+            return
+                PerformGenericRequest<QueryResult<T>>(SoapRequestManager.GetQueryMoreRequest(queryLocator, limit,
+                    Login()));
         }
+
+        #endregion
+
+        #region Crud Methods
+
+        public virtual ZuoraResponse Crud<T>(CrudOperation<T> operation) where T : ZObject
+        {
+            if (operation.Items.Count() > 50)
+                throw new ZuoraRequestException(
+                    "The SOAP api only allows the modification of up to 50 records. " +
+                    "Please use the Bulk api methods for any operation that requires " +
+                    "higher limits.");
+
+            return PerformSimpleRequest(SoapRequestManager.GetCrudRequest(operation, Login()));
+        }
+
+        public virtual ZuoraResponse Insert<T>(IEnumerable<T> items) where T : ZObject
+        {
+            return Crud(new CrudOperation<T>
+            {
+                Items = items,
+                OperationType = CrudOperations.Insert
+            });
+        }
+
+        public virtual ZuoraResponse Insert<T>(T item) where T : ZObject
+        {
+            return Insert<T>(new[] { item });
+        }
+
+        public virtual ZuoraResponse Update<T>(IEnumerable<T> items) where T : ZObject
+        {
+            return Crud(new CrudOperation<T>
+            {
+                Items = items,
+                OperationType = CrudOperations.Update
+            });
+        }
+
+        public virtual ZuoraResponse Update<T>(T item) where T : ZObject
+        {
+            return Update<T>(new[] { item });
+        }
+
+        public virtual ZuoraResponse Delete<T>(IEnumerable<T> items) where T : ZObject
+        {
+            return Crud(new CrudOperation<T>
+            {
+                Items = items,
+                OperationType = CrudOperations.Delete
+            });
+        }
+
+        public virtual ZuoraResponse Delete<T>(T item) where T : ZObject
+        {
+            return Delete<T>(new[] { item });
+        }
+
+        #endregion
+
+        #region Export Methods
+
+        public virtual ExportResult CreateExport(string query)
+        {
+            HttpRequest request = ExportRequestManager.GetCreateExportRequest(query, Login());
+            return PerformGenericRequest<ExportResult>(request); // TODO: We might need a custom performer
+        }
+
+        public virtual ExportResult CreateExport<T>(Expression<Func<T, bool>> predicate, int limit = 0)
+            where T : ZObject
+        {
+            return CreateExport(QueryBuilder.GenerateQuery(predicate, limit));
+        }
+
+        public virtual ExportResult CheckExportStatus(string id)
+        {
+            Export export = QuerySingle<Export>(x => x.Id == id);
+            return new ExportResult
+            {
+                Id = export.Id,
+                FileId = export.FileId,
+                Status = export.Status
+            };
+        }
+
+        public virtual Stream RetrieveExportStream(string id)
+        {
+            string url = string.Format("{0}/apps/api/file/{1}.csv", _config.InstanceUrl, id);
+            return ResponseReader.ReadStream(url, _config.Username, _config.Password);
+        }
+
+        public virtual IEnumerable<IDictionary<string, object>> RetrieveExportData(string id)
+        {
+            return ResponseReader.ReadExportData(RetrieveExportStream(id));
+        }
+
+        public virtual IEnumerable<T> RetrieveExportRecords<T>(string id) where T : ZObject
+        {
+            return ResponseReader.ReadExportRecords<T>(RetrieveExportStream(id));
+        }
+
+        #endregion
 
         #region Private Methods
 
@@ -241,6 +379,7 @@ namespace ZuoraMagic
         #endregion
 
         #region Implementation of IDisposable
+
         public void Dispose()
         {
             Dispose(true);
@@ -259,6 +398,14 @@ namespace ZuoraMagic
         {
             Dispose(false); // TODO: Logout anyway?
         }
+
         #endregion
+    }
+
+    public class ExportResult
+    {
+        public string Id { get; set; }
+        public string FileId { get; set; }
+        public string Status { get; set; }
     }
 }

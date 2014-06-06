@@ -36,6 +36,9 @@
     <Reference Include="LINQtoCSV">
       <HintPath>..\packages\LINQtoCSV.1.5.0.0\lib\net35\LINQtoCSV.dll</HintPath>
     </Reference>
+    <Reference Include="LumenWorks.Framework.IO">
+      <HintPath>..\packages\LumenWorksCsvReader.3.8.2\lib\net20\LumenWorks.Framework.IO.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Caching" />
@@ -53,6 +56,9 @@
     <Compile Include="Configuration\ZuoraConfig.cs" />
     <Compile Include="Configuration\ZuoraSession.cs" />
     <Compile Include="Configuration\SessionStoragePolicy.cs" />
+    <Compile Include="ExportApi\ExportCommands.cs" />
+    <Compile Include="ExportApi\ExportRequestManager.cs" />
+    <Compile Include="ExportApi\Models\Export.cs" />
     <Compile Include="SoapApi\Responses\QueryResult.cs" />
     <Compile Include="Entities\ZObject.cs" />
     <Compile Include="Exceptions\ZuoraRequestException.cs" />
@@ -82,7 +88,6 @@
     <Compile Include="SoapApi\RequestTemplates\LoginRequestTemplate.cs" />
     <Compile Include="SoapApi\RequestTemplates\QueryOptions.cs" />
     <Compile Include="SoapApi\RequestTemplates\QueryTemplate.cs" />
-    <Compile Include="SoapApi\RequestTemplates\UpsertTemplate.cs" />
     <Compile Include="SoapApi\RequestTemplates\XmlBody.cs" />
     <Compile Include="SoapApi\RequestTemplates\XmlHeader.cs" />
     <Compile Include="SoapApi\Responses\RecordResult.cs" />
@@ -92,7 +97,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Abstract\" />
-    <Folder Include="ExportApi\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -23,7 +23,7 @@ namespace ZuoraMagic.Entities
             // TODO: Implement robust serialization
             Type type = GetType();
             TypeAccessor accessor = ObjectHydrator.GetAccessor(type);
-            writer.WriteElementString("type", type.GetName());
+            writer.WriteAttributeString("type", ZuoraNamespaces.Type, "obj:" + type.GetName());
 
             foreach (PropertyInfo info in type.GetProperties())
             {

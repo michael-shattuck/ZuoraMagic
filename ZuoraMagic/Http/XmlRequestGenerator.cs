@@ -35,6 +35,7 @@ namespace ZuoraMagic.Http
             XmlSerializerNamespaces namespaces = new XmlSerializerNamespaces();
             namespaces.Add("soapenv", ZuoraNamespaces.Envelope);
             namespaces.Add("api", ZuoraNamespaces.Request);
+            namespaces.Add("xsi", ZuoraNamespaces.Type);
 
             using (XmlWriter writer = doc.CreateNavigator().AppendChild())
             {

@@ -17,9 +17,6 @@ namespace ZuoraMagic.ORM.BaseRequestTemplates
         [XmlElement("create", Namespace = ZuoraNamespaces.Request)]
         public BasicCrudTemplate InsertTemplate { get; set; }
 
-        [XmlElement("upsert", Namespace = ZuoraNamespaces.Request)]
-        public UpsertTemplate UpsertTemplate { get; set; }
-
         [XmlElement("update", Namespace = ZuoraNamespaces.Request)]
         public BasicCrudTemplate UpdateTemplate { get; set; }
 

@@ -4,13 +4,13 @@ namespace ZuoraMagic.SoapApi.Responses
 {
     public class RecordResult
     {
-        [ZuoraName("id")]
+        [ZuoraName("ns1:Id")]
         public string Id { get; set; }
 
-        [ZuoraName("success")]
+        [ZuoraName("ns1:Success")]
         public bool Success { get; set; }
 
-        [ZuoraName("message")]
+        [ZuoraName("ns1:Message")]
         public string Message { get; set; }
     }
 }

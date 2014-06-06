@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Xml;
 using System.Xml.Linq;
 using FastMember;
+using LumenWorks.Framework.IO.Csv;
 using ZuoraMagic.Entities;
 using ZuoraMagic.Extensions;
 using ZuoraMagic.ORM.BaseRequestTemplates;
@@ -74,14 +78,9 @@ namespace ZuoraMagic.ORM
                         if (child == null) continue;
 
                         value = child.Value;
-                    };
+                    }
 
-                    if (propertyType == typeof(string)) accessor[obj, property.Name] = value;
-                    if (propertyType == typeof(bool)) accessor[obj, property.Name] = Convert.ToBoolean(value);
-                    if (propertyType == typeof(int)) accessor[obj, property.Name] = Convert.ToInt32(value);
-                    if (propertyType == typeof(double)) accessor[obj, property.Name] = Convert.ToDouble(value);
-                    if (propertyType == typeof(decimal)) accessor[obj, property.Name] = Convert.ToDecimal(value);
-                    if (propertyType == typeof(DateTime)) accessor[obj, property.Name] = Convert.ToDateTime(value);
+                    ObjectHydrator.SetProperty(obj, value, property, accessor);
                 }
             }
 
@@ -98,6 +97,16 @@ namespace ZuoraMagic.ORM
             return (from XmlNode node in GetNamedNodes(document, "records") select ReadSimpleResponse<T>(node, document)).ToArray();
         }
 
+        internal static Stream ReadStream(string url, string username, string password)
+        {
+            WebClient webClient = new WebClient
+            {
+                Credentials = new NetworkCredential(username, password)
+            };
+
+            return webClient.OpenRead(url);
+        }
+
         private static XmlNodeList GetNamedNodes(XmlDocument document, string name)
         {
             return document.GetElementsByTagName(name, ZuoraNamespaces.Request);
@@ -107,6 +116,58 @@ namespace ZuoraMagic.ORM
         {
             XDocument document = XDocument.Parse(node.OuterXml);
             return document.Descendants().Where(x => x.Name.LocalName == name).ToArray();
+        }
+
+        internal static IEnumerable<IDictionary<string, object>> ReadExportData(Stream stream)
+        {
+            using (StreamReader streamReader = new StreamReader(stream))
+            using (CsvReader parser = new CsvReader(streamReader, true))
+            {
+                List<Dictionary<string, object>> data = new List<Dictionary<string, object>>();
+                string[] headers = parser.GetFieldHeaders();
+                int fieldCount = parser.FieldCount;
+
+                while (parser.ReadNextRecord())
+                {
+                    Dictionary<string, object> row = new Dictionary<string, object>();
+                    for (int i = 0; i < fieldCount; i++)
+                    {
+                        row.Add(headers[i], parser[i]);
+                    }
+                    data.Add(row);
+                }
+
+                stream.Close();
+                return data;
+            }
+        }
+
+        internal static IEnumerable<T> ReadExportRecords<T>(Stream stream) where T : ZObject
+        {
+            using (StreamReader streamReader = new StreamReader(stream))
+            using (CsvReader parser = new CsvReader(streamReader, true))
+            {
+                Type type = typeof (T);
+                TypeAccessor accessor = ObjectHydrator.GetAccessor(type);
+                Dictionary<string, T> records = new Dictionary<string, T>();
+
+                while (parser.ReadNextRecord())
+                {
+                    string id = parser[type.GetName() + ".Id"];
+                    if (!records.ContainsKey(id))
+                    {
+                        T item = ObjectHydrator.ParseItem<T>(type, parser, accessor);
+                        records.Add(id, item);
+                    }
+                    else
+                    {
+                        ObjectHydrator.ParseItem(records[id], type, parser, accessor);
+                    }
+                }
+
+                stream.Close();
+                return records.Select(x => x.Value);
+            }
         }
     }
 }

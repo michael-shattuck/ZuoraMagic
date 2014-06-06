@@ -16,14 +16,20 @@ namespace ZuoraMagic.ORM
             return query;
         }
 
-        public static string GenerateQuery<T>(Expression<Func<T, bool>> predicate)
+        public static string GenerateQuery<T>(Expression<Func<T, bool>> predicate, int limit = 0)
             where T : ZObject
         {
             Type type = typeof(T);
             string query = CompileSelectStatements(type);
             if (predicate != null) AddConditionsSet(ref query, predicate);
+            if (limit > 0) AddLimit(ref query, limit);
 
             return query;
+        }
+
+        private static void AddLimit(ref string query, int limit)
+        {
+            query = query + " LIMIT " + limit;
         }
 
         private static string CompileSelectStatements(Type type)
