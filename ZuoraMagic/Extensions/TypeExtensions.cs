@@ -29,14 +29,30 @@ namespace ZuoraMagic.Extensions
         internal static string GetName(this PropertyInfo info)
         {
             return info.GetCustomAttribute<ZuoraNameAttribute>() != null
-                ? info.GetCustomAttribute<ZuoraNameAttribute>().Name
+                ? info.GetCustomAttribute<ZuoraNameAttribute>().Name ?? info.Name
                 : info.Name;
         }
 
         internal static string GetName(this Type type)
         {
             ZuoraNameAttribute attribute = type.GetCustomAttribute<ZuoraNameAttribute>();
-            return attribute != null ? attribute.Name : type.Name;
+            return attribute != null ? attribute.Name ?? type.Name : type.Name;
+        }
+
+        internal static string GetMappingName(this Type type)
+        {
+            ZuoraNameAttribute attribute = type.GetCustomAttribute<ZuoraNameAttribute>();
+            if (attribute == null) return type.Name;
+
+            return attribute.MappingOverride ?? (attribute.Name ?? type.Name);
+        }
+
+        internal static string GetMappingName(this PropertyInfo info, string defaultName = null)
+        {
+            ZuoraNameAttribute attribute = info.GetCustomAttribute<ZuoraNameAttribute>();
+            if (attribute == null) return defaultName;
+
+            return attribute.MappingOverride ?? defaultName;
         }
 
         internal static IEnumerable<PropertyInfo> GetObjectProperties(this Type type)
@@ -51,9 +67,30 @@ namespace ZuoraMagic.Extensions
 
         internal static IEnumerable<string> GetRelationNames(this Type type)
         {
-            return type
+            IList<string> list = type
                 .GetObjectProperties()
-                .Select(x => x.PropertyType.IsGenericType ? x.PropertyType.GenericTypeArguments[0].Name : x.PropertyType.Name);
+                .Select(GetPropertyMappingName)
+                .ToList();
+
+            foreach (
+                ZuoraMappingAdditionAttribute attribute in
+                    type.GetCustomAttributes(typeof(ZuoraMappingAdditionAttribute)))
+            {
+                list.Add(attribute.MappingName);
+            }
+
+            return list;
+        }
+
+        private static string GetPropertyMappingName(PropertyInfo info)
+        {
+            ZuoraNameAttribute attribute = info.GetCustomAttribute<ZuoraNameAttribute>();
+            if (attribute == null || string.IsNullOrEmpty(attribute.MappingOverride))
+                return info.PropertyType.IsGenericType
+                    ? info.PropertyType.GenericTypeArguments[0].GetMappingName()
+                    : info.PropertyType.GetMappingName();
+
+            return attribute.MappingOverride ?? attribute.Name;
         }
 
         internal static IEnumerable<PropertyInfo> GetPrimitiveProperties(this Type type)

@@ -318,7 +318,7 @@ namespace ZuoraMagic
             return ResponseReader.ReadStream(url, _config.Username, _config.Password);
         }
 
-        public virtual IEnumerable<IDictionary<string, object>> RetrieveExportData(string id)
+        public virtual IEnumerable<IDictionary<string, string>> RetrieveExportData(string id)
         {
             return ResponseReader.ReadExportData(RetrieveExportStream(id));
         }

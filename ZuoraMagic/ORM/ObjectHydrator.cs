@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Reflection;
 using FastMember;
-using LumenWorks.Framework.IO.Csv;
 using ZuoraMagic.Entities;
 using ZuoraMagic.Extensions;
 
@@ -22,39 +21,31 @@ namespace ZuoraMagic.ORM
             return accessor;
         }
 
-        internal static T ParseItem<T>(Type type, CsvReader parser, TypeAccessor accessor, bool retrieveRelated)
+        internal static T ParseItem<T>(Type type, Dictionary<string, string> row, TypeAccessor accessor, bool retrieveRelated)
             where T : ZObject
         {
             T obj = Activator.CreateInstance<T>();
+            string typeName = type.GetMappingName();
 
             foreach (PropertyInfo property in type.GetCachedProperties())
             {
-                string name = type.GetName() + "." + property.GetName();
-                string value;
-                try
-                {
-                    value = parser[name];
-                    if (value == null) continue;
-                }
-                catch (Exception)
-                {
-                    continue;
-                }
-
-                SetProperty(obj, value, property, accessor);
+                string name = typeName + "." + property.GetName();
+                if (!row.ContainsKey(name) || string.IsNullOrEmpty(row[name])) continue;
+                SetProperty(obj, row[name], property, accessor);
             }
 
-            if (retrieveRelated) ParseRelations(obj, type, parser, accessor);
+            if (retrieveRelated) ParseRelations(obj, type, row, accessor);
 
             return obj;
         }
 
-        private static void ParseRelations<T>(T item, Type type, CsvReader parser, TypeAccessor accessor, Type parent = null)
+        private static void ParseRelations<T>(T item, Type type, Dictionary<string, string> row, TypeAccessor accessor, Type parent = null)
             where T : ZObject
         {
             foreach (PropertyInfo property in type.GetObjectProperties())
             {
                 string propertyName = property.Name;
+                string mappingName = property.GetMappingName();
                 Type propertyType = property.PropertyType;
                 if (parent != null && property.PropertyType == parent) continue;
                 object value;
@@ -64,7 +55,7 @@ namespace ZuoraMagic.ORM
                     propertyType = propertyType.GetGenericArguments()[0];
                     if (parent != null && property.PropertyType == parent) continue;
                     value = accessor[item, propertyName] ?? CreateGenericList(propertyType);
-                    dynamic obj = ParseItem(propertyType, parser, GetAccessor(propertyType), type);
+                    dynamic obj = ParseItem(propertyType, row, GetAccessor(propertyType), type);
                     if (obj == null) continue;
                     dynamic actualValue = Cast(value, CreateGenericList(obj, CastList(obj, value)));
                     accessor[item, propertyName] = actualValue;
@@ -72,7 +63,7 @@ namespace ZuoraMagic.ORM
                 }
 
                 if (accessor[item, propertyName] != null) continue;
-                value = ParseItem(propertyType, parser, GetAccessor(propertyType), type);
+                value = ParseItem(propertyType, row, GetAccessor(propertyType), type);
                 if (value != null) accessor[item, propertyName] = value;
             }
         }
@@ -90,30 +81,25 @@ namespace ZuoraMagic.ORM
                 : new List<T> { obj };
         }
 
-        private static ZObject ParseItem(Type type, CsvReader parser, TypeAccessor accessor, Type parent = null)
+        private static ZObject ParseItem(Type type, Dictionary<string, string> row, TypeAccessor accessor, Type parent = null)
         {
             object obj = Activator.CreateInstance(type);
+            string typeName = type.GetName();
 
-            foreach (PropertyInfo property in type.GetPrimitiveProperties())
+            foreach (PropertyInfo property in type.GetCachedProperties())
             {
-                string name = type.GetName() + "." + property.GetName();
-                string value;
-                try
-                {
-                    value = parser[name];
-                    if (property.Name == "Id" && string.IsNullOrEmpty(value)) return null;
-                    if (value == null) continue;
-                }
-                catch (Exception)
-                {
-                    if (property.Name == "Id") return null;
-                    continue;
-                }
+                string name = property.GetMappingName(typeName) + "." + property.GetName();
+                if (property.Name == "Id" && !row.ContainsKey(name)) continue;
+                if (!row.ContainsKey(name)) continue;
+
+                string value = row[name];
+                if (property.Name == "Id" && string.IsNullOrEmpty(value)) return null;
+                if (string.IsNullOrEmpty(value)) continue;
 
                 SetProperty(obj, value, property, accessor);
             }
 
-            ParseRelations((ZObject)obj, type, parser, accessor, parent);
+            ParseRelations((ZObject)obj, type, row, accessor, parent);
 
             return (ZObject)obj;
         }
@@ -140,7 +126,7 @@ namespace ZuoraMagic.ORM
             return (IEnumerable<T>)obj;
         }
 
-        public static void CombineRelations<T>(T obj, Type type, CsvReader parser, TypeAccessor accessor)
+        public static void CombineRelations<T>(T obj, Type type, Dictionary<string, string> parser, TypeAccessor accessor)
             where T : ZObject
         {
             ParseRelations(obj, type, parser, accessor);

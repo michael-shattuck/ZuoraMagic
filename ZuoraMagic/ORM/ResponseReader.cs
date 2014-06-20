@@ -117,18 +117,18 @@ namespace ZuoraMagic.ORM
             return document.Descendants().Where(x => x.Name.LocalName == name).ToArray();
         }
 
-        internal static IEnumerable<IDictionary<string, object>> ReadExportData(Stream stream)
+        internal static IEnumerable<IDictionary<string, string>> ReadExportData(Stream stream)
         {
             using (StreamReader streamReader = new StreamReader(stream))
             using (CsvReader parser = new CsvReader(streamReader, true))
             {
-                List<Dictionary<string, object>> data = new List<Dictionary<string, object>>();
+                List<Dictionary<string, string>> data = new List<Dictionary<string, string>>();
                 string[] headers = parser.GetFieldHeaders();
                 int fieldCount = parser.FieldCount;
 
                 while (parser.ReadNextRecord())
                 {
-                    Dictionary<string, object> row = new Dictionary<string, object>();
+                    Dictionary<string, string> row = new Dictionary<string, string>();
                     for (int i = 0; i < fieldCount; i++)
                     {
                         row.Add(headers[i], parser[i]);
@@ -143,30 +143,27 @@ namespace ZuoraMagic.ORM
 
         internal static IEnumerable<T> ReadExportRecords<T>(Stream stream, bool retrieveRelated) where T : ZObject
         {
-            using (StreamReader streamReader = new StreamReader(stream))
-            using (CsvReader parser = new CsvReader(streamReader, true))
+            IEnumerable<IDictionary<string, string>> data = ReadExportData(stream);
+
+            Type type = typeof(T);
+            TypeAccessor accessor = ObjectHydrator.GetAccessor(type);
+            Dictionary<string, T> records = new Dictionary<string, T>();
+
+            foreach (Dictionary<string, string> row in data)
             {
-                Type type = typeof (T);
-                TypeAccessor accessor = ObjectHydrator.GetAccessor(type);
-                Dictionary<string, T> records = new Dictionary<string, T>();
-
-                while (parser.ReadNextRecord())
+                string id = row[type.GetName() + ".Id"];
+                if (!records.ContainsKey(id))
                 {
-                    string id = parser[type.GetName() + ".Id"];
-                    if (!records.ContainsKey(id))
-                    {
-                        T item = ObjectHydrator.ParseItem<T>(type, parser, accessor, retrieveRelated);
-                        records.Add(id, item);
-                    }
-                    else if (retrieveRelated)
-                    {
-                        ObjectHydrator.CombineRelations(records[id], type, parser, accessor);
-                    }
+                    T item = ObjectHydrator.ParseItem<T>(type, row, accessor, retrieveRelated);
+                    records.Add(id, item);
                 }
-
-                stream.Close();
-                return records.Select(x => x.Value);
+                else if (retrieveRelated)
+                {
+                    ObjectHydrator.CombineRelations(records[id], type, row, accessor);
+                }
             }
+
+            return records.Select(x => x.Value);
         }
     }
 }

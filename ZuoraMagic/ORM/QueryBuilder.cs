@@ -64,8 +64,9 @@ namespace ZuoraMagic.ORM
         {
             if (retrieveRelated)
             {
-                string[] properties = type.GetRelationNames().ToArray();
+                string[] properties = GetObjectNames(type, new List<string>()).ToArray();
                 string propertySelectString = string.Empty;
+
                 for (int i = 0; i < properties.Length; i++)
                 {
                     if (i < properties.Length - 1)
@@ -74,10 +75,23 @@ namespace ZuoraMagic.ORM
                         propertySelectString = propertySelectString + string.Format("{0}.*", properties[i]);
                 }
 
-                return string.Format("SELECT {0}.*, {1} FROM {0}", type.Name, propertySelectString);
+                return string.Format("SELECT {0} FROM {1}", propertySelectString, type.Name);
             }
 
             return string.Format("SELECT {0}.* FROM {0}", type.Name);
+        }
+
+        private static IEnumerable<string> GetObjectNames(Type type, List<string> list, Type parent = null)
+        {
+            list.AddRange(type.GetRelationNames().Where(x => !list.Contains(x)).ToList());
+            foreach (Type propertyType in type.GetObjectProperties().Select(property => property.PropertyType.IsGenericType
+                ? property.PropertyType.GetGenericArguments()[0]
+                : property.PropertyType).Where(propertyType => parent == null || propertyType != parent))
+            {
+                list.AddRange(GetObjectNames(propertyType, list, type).Where(x => !list.Contains(x)));
+            }
+
+            return list;
         }
 
         private static void AddConditionsSet<T>(ref string query, Expression<Func<T, bool>> predicate)

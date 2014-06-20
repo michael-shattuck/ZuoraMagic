@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attributes\ZuoraMappingAdditionAttribute.cs" />
     <Compile Include="Attributes\ZuoraNameAttribute.cs" />
     <Compile Include="Configuration\Abstract\ISessionStoreProvider.cs" />
     <Compile Include="Configuration\CrudOperation.cs" />
