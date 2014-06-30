@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using FastMember;
@@ -11,6 +12,7 @@ using LumenWorks.Framework.IO.Csv;
 using ZuoraMagic.Entities;
 using ZuoraMagic.Extensions;
 using ZuoraMagic.ORM.BaseRequestTemplates;
+using ZuoraMagic.ORM.Models;
 using ZuoraMagic.SoapApi.Responses;
 
 namespace ZuoraMagic.ORM
@@ -50,8 +52,8 @@ namespace ZuoraMagic.ORM
 
         internal static T ReadSimpleResponse<T>(XmlNode node, XmlDocument document)
         {
-            Type type = typeof(T);
-            bool ns = type.BaseType == typeof(ZObject);
+            Type type = typeof (T);
+            bool ns = type.BaseType == typeof (ZObject);
             T obj = Activator.CreateInstance<T>();
             TypeAccessor accessor = ObjectHydrator.GetAccessor(type);
 
@@ -88,12 +90,16 @@ namespace ZuoraMagic.ORM
 
         internal static T[] ReadArrayResponse<T>(XmlDocument document)
         {
-            return (from XmlNode node in GetNamedNodes(document, "records") select ReadSimpleResponse<T>(node, document)).ToArray();
+            return
+                (from XmlNode node in GetNamedNodes(document, "records") select ReadSimpleResponse<T>(node, document))
+                    .ToArray();
         }
 
         internal static T[] ReadArrayResponse<T>(T dummy, XmlDocument document)
         {
-            return (from XmlNode node in GetNamedNodes(document, "records") select ReadSimpleResponse<T>(node, document)).ToArray();
+            return
+                (from XmlNode node in GetNamedNodes(document, "records") select ReadSimpleResponse<T>(node, document))
+                    .ToArray();
         }
 
         internal static Stream ReadStream(string url, string username, string password)
@@ -117,53 +123,40 @@ namespace ZuoraMagic.ORM
             return document.Descendants().Where(x => x.Name.LocalName == name).ToArray();
         }
 
-        internal static IEnumerable<IDictionary<string, string>> ReadExportData(Stream stream)
+        internal static IEnumerable<CsvRow> ReadExportData(Stream stream)
         {
             using (StreamReader streamReader = new StreamReader(stream))
             using (CsvReader parser = new CsvReader(streamReader, true))
             {
-                List<Dictionary<string, string>> data = new List<Dictionary<string, string>>();
                 string[] headers = parser.GetFieldHeaders();
-                int fieldCount = parser.FieldCount;
-
-                while (parser.ReadNextRecord())
-                {
-                    Dictionary<string, string> row = new Dictionary<string, string>();
-                    for (int i = 0; i < fieldCount; i++)
-                    {
-                        row.Add(headers[i], parser[i]);
-                    }
-                    data.Add(row);
-                }
-
+                IEnumerable<CsvRow> data = parser.Select(x => new CsvRow(x, headers)).ToArray();
                 stream.Close();
+                
                 return data;
             }
         }
 
         internal static IEnumerable<T> ReadExportRecords<T>(Stream stream, bool retrieveRelated) where T : ZObject
         {
-            IEnumerable<IDictionary<string, string>> data = ReadExportData(stream);
+            IEnumerable<CsvRow>  data = ReadExportData(stream);
 
             Type type = typeof(T);
+            string name = type.GetName();
             TypeAccessor accessor = ObjectHydrator.GetAccessor(type);
-            Dictionary<string, T> records = new Dictionary<string, T>();
+            List<T> records = new List<T>();
 
-            foreach (Dictionary<string, string> row in data)
+            Parallel.ForEach(data.GroupBy(x => x[name + ".Id"]), itemData =>
             {
-                string id = row[type.GetName() + ".Id"];
-                if (!records.ContainsKey(id))
+                T item = null;
+                foreach (CsvRow row in itemData)
                 {
-                    T item = ObjectHydrator.ParseItem<T>(type, row, accessor, retrieveRelated);
-                    records.Add(id, item);
+                    if (item == null) item = ObjectHydrator.ParseItem<T>(type, row, accessor, retrieveRelated);
+                    ObjectHydrator.CombineRelations(item, type, row, accessor);
                 }
-                else if (retrieveRelated)
-                {
-                    ObjectHydrator.CombineRelations(records[id], type, row, accessor);
-                }
-            }
+                records.Add(item);
+            });
 
-            return records.Select(x => x.Value);
+            return records;
         }
     }
 }

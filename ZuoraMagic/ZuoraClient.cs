@@ -13,6 +13,7 @@ using ZuoraMagic.ExportApi.Models;
 using ZuoraMagic.Http;
 using ZuoraMagic.Http.Models;
 using ZuoraMagic.ORM;
+using ZuoraMagic.ORM.Models;
 using ZuoraMagic.SoapApi;
 using ZuoraMagic.SoapApi.Enum;
 using ZuoraMagic.SoapApi.Responses;
@@ -23,7 +24,6 @@ namespace ZuoraMagic
     ///     
     /// </summary>
     /// TODO: Add export error check
-    /// TODO: Add auto export ability
     public class ZuoraClient : IDisposable
     {
         #region Private Fields
@@ -318,7 +318,7 @@ namespace ZuoraMagic
             return ResponseReader.ReadStream(url, _config.Username, _config.Password);
         }
 
-        public virtual IEnumerable<IDictionary<string, string>> RetrieveExportData(string id)
+        public virtual IEnumerable<CsvRow> RetrieveExportData(string id)
         {
             return ResponseReader.ReadExportData(RetrieveExportStream(id));
         }

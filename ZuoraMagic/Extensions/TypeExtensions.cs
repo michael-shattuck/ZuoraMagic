@@ -9,7 +9,8 @@ using ZuoraMagic.Entities;
 namespace ZuoraMagic.Extensions
 {
     internal static class TypeExtensions
-    {
+    {   
+        internal static object Lock = new object();
         private static readonly IDictionary<string, IEnumerable<PropertyInfo>> PropertyInfos = new Dictionary<string, IEnumerable<PropertyInfo>>();
   
         internal static IEnumerable<string> GetPropertyNames(this Type type)
@@ -110,27 +111,30 @@ namespace ZuoraMagic.Extensions
 
         internal static PropertyInfo[] GetCachedProperties(this Type type)
         {
-            PropertyInfo[] propertyInfos;
-
-            if (typeof (ZObject).IsAssignableFrom(type))
+            lock (Lock)
             {
-                string name = type.Name;
-                if (PropertyInfos.ContainsKey(type.Name))
+                PropertyInfo[] propertyInfos;
+
+                if (typeof (ZObject).IsAssignableFrom(type))
                 {
-                    propertyInfos = PropertyInfos[name].ToArray();
+                    string name = type.Name;
+                    if (PropertyInfos.ContainsKey(type.Name))
+                    {
+                        propertyInfos = PropertyInfos[name].ToArray();
+                    }
+                    else
+                    {
+                        propertyInfos = type.GetProperties().ToArray();
+                        PropertyInfos.Add(name, propertyInfos);
+                    }
                 }
                 else
                 {
-                    propertyInfos = type.GetProperties().ToArray();
-                    PropertyInfos.Add(name, propertyInfos);
+                    propertyInfos = type.GetProperties();
                 }
-            }
-            else
-            {
-                propertyInfos = type.GetProperties();
-            }
 
-            return propertyInfos;
+                return propertyInfos;
+            }
         }
     }
 }

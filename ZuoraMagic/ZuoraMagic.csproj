@@ -61,6 +61,7 @@
     <Compile Include="ExportApi\ExportCommands.cs" />
     <Compile Include="ExportApi\ExportRequestManager.cs" />
     <Compile Include="ExportApi\Models\Export.cs" />
+    <Compile Include="ORM\Models\CsvRow.cs" />
     <Compile Include="SoapApi\Responses\QueryResult.cs" />
     <Compile Include="Entities\ZObject.cs" />
     <Compile Include="Exceptions\ZuoraRequestException.cs" />

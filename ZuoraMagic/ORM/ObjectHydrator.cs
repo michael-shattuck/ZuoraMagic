@@ -4,24 +4,29 @@ using System.Reflection;
 using FastMember;
 using ZuoraMagic.Entities;
 using ZuoraMagic.Extensions;
+using ZuoraMagic.ORM.Models;
 
 namespace ZuoraMagic.ORM
 {
     public static class ObjectHydrator
     {
+        internal static object Lock = new object();
         internal static IDictionary<string, TypeAccessor> CachedAccessors = new Dictionary<string, TypeAccessor>();
 
         internal static TypeAccessor GetAccessor(Type type)
         {
-            string name = type.Name;
-            if (CachedAccessors.ContainsKey(name)) return CachedAccessors[name];
-            TypeAccessor accessor = TypeAccessor.Create(type);
-            CachedAccessors.Add(name, accessor);
+            lock (Lock)
+            {
+                string name = type.Name;
+                if (CachedAccessors.ContainsKey(name)) return CachedAccessors[name];
+                TypeAccessor accessor = TypeAccessor.Create(type);
+                CachedAccessors.Add(name, accessor);
 
-            return accessor;
+                return accessor;
+            }
         }
 
-        internal static T ParseItem<T>(Type type, Dictionary<string, string> row, TypeAccessor accessor, bool retrieveRelated)
+        internal static T ParseItem<T>(Type type, CsvRow row, TypeAccessor accessor, bool retrieveRelated)
             where T : ZObject
         {
             T obj = Activator.CreateInstance<T>();
@@ -39,13 +44,12 @@ namespace ZuoraMagic.ORM
             return obj;
         }
 
-        private static void ParseRelations<T>(T item, Type type, Dictionary<string, string> row, TypeAccessor accessor, Type parent = null)
+        private static void ParseRelations<T>(T item, Type type, CsvRow row, TypeAccessor accessor, Type parent = null)
             where T : ZObject
         {
             foreach (PropertyInfo property in type.GetObjectProperties())
             {
                 string propertyName = property.Name;
-                string mappingName = property.GetMappingName();
                 Type propertyType = property.PropertyType;
                 if (parent != null && property.PropertyType == parent) continue;
                 object value;
@@ -81,7 +85,7 @@ namespace ZuoraMagic.ORM
                 : new List<T> { obj };
         }
 
-        private static ZObject ParseItem(Type type, Dictionary<string, string> row, TypeAccessor accessor, Type parent = null)
+        private static ZObject ParseItem(Type type, CsvRow row, TypeAccessor accessor, Type parent = null)
         {
             object obj = Activator.CreateInstance(type);
             string typeName = type.GetName();
@@ -126,7 +130,7 @@ namespace ZuoraMagic.ORM
             return (IEnumerable<T>)obj;
         }
 
-        public static void CombineRelations<T>(T obj, Type type, Dictionary<string, string> parser, TypeAccessor accessor)
+        public static void CombineRelations<T>(T obj, Type type, CsvRow parser, TypeAccessor accessor)
             where T : ZObject
         {
             ParseRelations(obj, type, parser, accessor);
