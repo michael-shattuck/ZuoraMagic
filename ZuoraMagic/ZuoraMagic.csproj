@@ -42,6 +42,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Caching" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -49,12 +50,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Abstract\IZuoraClient.cs" />
+    <Compile Include="Attributes\ZuoraIgnoreAttribute.cs" />
     <Compile Include="Attributes\ZuoraMappingAdditionAttribute.cs" />
     <Compile Include="Attributes\ZuoraNameAttribute.cs" />
     <Compile Include="Configuration\Abstract\ISessionStoreProvider.cs" />
     <Compile Include="Configuration\CrudOperation.cs" />
     <Compile Include="Configuration\MemoryCacheProvider.cs" />
     <Compile Include="Configuration\ZuoraConfig.cs" />
+    <Compile Include="Configuration\ZuoraExportOptions.cs" />
     <Compile Include="Configuration\ZuoraSession.cs" />
     <Compile Include="Configuration\SessionStoragePolicy.cs" />
     <Compile Include="Entities\ExportResult.cs" />
@@ -98,13 +102,23 @@
     <Compile Include="SoapApi\SoapRequestManager.cs" />
     <Compile Include="ZuoraClient.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Abstract\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="PostBuildScripts\BuildNewPackage-RanAutomatically.ps1" />
+    <None Include="PostBuildScripts\New-NuGetPackage.ps1" />
+    <None Include="PostBuildScripts\UploadPackage-RunManually.bat" />
+    <None Include="PostBuildScripts\UploadPackage-RunManually.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="PostBuildScripts\NuGet.exe" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>REM Create a NuGet package for this project and place the .nupkg file in the project's output directory.
+ECHO Building NuGet package in Post-Build event...
+PowerShell -NoProfile -ExecutionPolicy Bypass -Command "&amp; '$(ProjectDir)PostBuildScripts\BuildNewPackage-RanAutomatically.ps1' -ProjectFilePath '$(ProjectPath)' -OutputDirectory '$(TargetDir)' -Configuration '$(ConfigurationName)' -Platform '$(PlatformName)'"</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

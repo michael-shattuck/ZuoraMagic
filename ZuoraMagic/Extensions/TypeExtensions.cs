@@ -9,10 +9,10 @@ using ZuoraMagic.Entities;
 namespace ZuoraMagic.Extensions
 {
     internal static class TypeExtensions
-    {   
+    {
         internal static object Lock = new object();
         private static readonly IDictionary<string, IEnumerable<PropertyInfo>> PropertyInfos = new Dictionary<string, IEnumerable<PropertyInfo>>();
-  
+
         internal static IEnumerable<string> GetPropertyNames(this Type type)
         {
             return type.GetCachedProperties().GetNames();
@@ -59,11 +59,11 @@ namespace ZuoraMagic.Extensions
         internal static IEnumerable<PropertyInfo> GetObjectProperties(this Type type)
         {
             return from property in type.GetCachedProperties()
-                let propertyType = property.PropertyType
-                let zObjectType = typeof(ZObject)
-                where zObjectType.IsAssignableFrom(propertyType)
-                || (propertyType.IsGenericType && zObjectType.IsAssignableFrom(propertyType.GetGenericArguments()[0]))
-                select property;
+                   let propertyType = property.PropertyType
+                   let zObjectType = typeof(ZObject)
+                   where zObjectType.IsAssignableFrom(propertyType)
+                   || (propertyType.IsGenericType && zObjectType.IsAssignableFrom(propertyType.GetGenericArguments()[0]))
+                   select property;
         }
 
         internal static IEnumerable<string> GetRelationNames(this Type type)
@@ -115,16 +115,20 @@ namespace ZuoraMagic.Extensions
             {
                 PropertyInfo[] propertyInfos;
 
-                if (typeof (ZObject).IsAssignableFrom(type))
+                if (typeof(ZObject).IsAssignableFrom(type))
                 {
                     string name = type.Name;
                     if (PropertyInfos.ContainsKey(type.Name))
                     {
-                        propertyInfos = PropertyInfos[name].ToArray();
+                        propertyInfos = PropertyInfos[name]
+                            .Where(x => x.GetCustomAttribute<ZuoraIgnoreAttribute>() != null)
+                            .ToArray();
                     }
                     else
                     {
-                        propertyInfos = type.GetProperties().ToArray();
+                        propertyInfos = type.GetProperties()
+                            .Where(x => x.GetCustomAttribute<ZuoraIgnoreAttribute>() != null)
+                            .ToArray();
                         PropertyInfos.Add(name, propertyInfos);
                     }
                 }

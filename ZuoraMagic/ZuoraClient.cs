@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Xml;
+using ZuoraMagic.Abstract;
 using ZuoraMagic.Configuration;
 using ZuoraMagic.Configuration.Abstract;
 using ZuoraMagic.Entities;
@@ -24,13 +26,22 @@ namespace ZuoraMagic
     ///     
     /// </summary>
     /// TODO: Add export error check
-    public class ZuoraClient : IDisposable
+    public class ZuoraClient : IZuoraClient
     {
         #region Private Fields
 
         private static readonly object Lock = new object();
         private readonly ZuoraConfig _config;
         private readonly ISessionStoreProvider _sessionStore;
+
+        #endregion
+
+        #region Public Fields
+
+        public ZuoraSession Session
+        {
+            get { return _config.Session; }
+        }
 
         #endregion
 
@@ -283,22 +294,55 @@ namespace ZuoraMagic
 
         #region Export Methods
 
+        public IEnumerable<CsvRow> ExportData<T>(Expression<Func<T, bool>> predicate, ZuoraExportOptions options = null)
+            where T : ZObject
+        {
+            if (options == null) options = new ZuoraExportOptions();
+            return ExportData(QueryBuilder.GenerateExportQuery(predicate, options), options);
+        }
+
+        public IEnumerable<CsvRow> ExportData(string query, ZuoraExportOptions options = null)
+        {
+            string exportId = PerformExportQuery(query, options);
+            return RetrieveExportData(exportId);
+        }
+
+        public Stream ExportStream<T>(Expression<Func<T, bool>> predicate, ZuoraExportOptions options = null)
+            where T : ZObject
+        {
+            if (options == null) options = new ZuoraExportOptions();
+            return ExportStream(QueryBuilder.GenerateExportQuery(predicate, options), options);
+        }
+
+        public Stream ExportStream(string query, ZuoraExportOptions options = null)
+        {
+            string exportId = PerformExportQuery(query, options);
+            return RetrieveExportStream(exportId);
+        }
+
+        public IEnumerable<T> ExportRecords<T>(Expression<Func<T, bool>> predicate, ZuoraExportOptions options = null) where T : ZObject
+        {
+            if (options == null) options = new ZuoraExportOptions();
+            return ExportRecords<T>(QueryBuilder.GenerateExportQuery(predicate, options), options);
+        }
+
+        public IEnumerable<T> ExportRecords<T>(string query, ZuoraExportOptions options = null) where T : ZObject
+        {
+            string exportId = PerformExportQuery(query, options);
+            return RetrieveExportRecords<T>(exportId);
+        }
+
         public virtual ExportResult CreateExport(string query)
         {
             HttpRequest request = ExportRequestManager.GetCreateExportRequest(query, Login());
             return PerformGenericRequest<ExportResult>(request);
         }
 
-        public virtual ExportResult CreateExport<T>(Expression<Func<T, bool>> predicate, bool retrieveRelated, int limit = 0)
+        public virtual ExportResult CreateExport<T>(Expression<Func<T, bool>> predicate, ZuoraExportOptions options = null)
             where T : ZObject
         {
-            return CreateExport(QueryBuilder.GenerateExportQuery(predicate, retrieveRelated, limit));
-        }
-
-        public virtual ExportResult CreateExport<T>(bool retrieveRelated, int limit = 0)
-            where T : ZObject
-        {
-            return CreateExport(QueryBuilder.GenerateExportQuery<T>(retrieveRelated, limit));
+            if (options == null) options = new ZuoraExportOptions();
+            return CreateExport(QueryBuilder.GenerateExportQuery(predicate, options));
         }
 
         public virtual ExportResult CheckExportStatus(string id)
@@ -331,6 +375,34 @@ namespace ZuoraMagic
         #endregion
 
         #region Private Methods
+
+        private string PerformExportQuery(string query, ZuoraExportOptions options)
+        {
+            if (options == null) options = new ZuoraExportOptions();
+
+            int expiredTime = 0;
+            ExportResult export = CreateExport(query);
+            do
+            {
+                if (options.Timeout != null && expiredTime >= options.Timeout)
+                {
+                    if (options.ReRunOnTimeout) return PerformExportQuery(query, options);
+                    throw new ZuoraRequestException("Timeout");
+                }
+
+                export = CheckExportStatus(export.Id);
+                if (export.Status == "Failed")
+                {
+                    if (options.ReRunOnFailure) return PerformExportQuery(query, options);
+                    throw new ZuoraRequestException("The export failed.");
+                }
+
+                Thread.Sleep(options.WaitTime);
+                expiredTime += options.WaitTime;
+            } while (export.Status != "Completed");
+
+            return export.Id;
+        }
 
         private T PerformGenericRequest<T>(HttpRequest request)
         {

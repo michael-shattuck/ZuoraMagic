@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using ZuoraMagic.Configuration;
 using ZuoraMagic.Entities;
 using ZuoraMagic.Extensions;
 using ZuoraMagic.LinqProvider;
@@ -20,13 +21,14 @@ namespace ZuoraMagic.ORM
         }
 
 
-        internal static string GenerateExportQuery<T>(Expression<Func<T, bool>> predicate, bool retrieveRelated, int limit = 0)
+        internal static string GenerateExportQuery<T>(Expression<Func<T, bool>> predicate, ZuoraExportOptions options)
             where T : ZObject
         {
             Type type = typeof(T);
-            string query = CompileExportSelectStatements(type, retrieveRelated);
+            string query = CompileExportSelectStatements(type, options.RetrieveRelated);
             if (predicate != null) AddConditionsSet(ref query, predicate);
-            if (limit > 0) AddLimit(ref query, limit);
+            if (options.Index != null && options.Limit > 0) AddOffsetLimit(ref query, (int)options.Index, options.Limit);
+            else if (options.Limit > 0) AddLimit(ref query, options.Limit);
 
             return query;
         }
@@ -48,6 +50,11 @@ namespace ZuoraMagic.ORM
             if (predicate != null) AddConditionsSet(ref query, predicate);
 
             return query;
+        }
+
+        private static void AddOffsetLimit(ref string query, int index, int limit)
+        {
+            query = query + " LIMIT " + index + "," + limit;
         }
 
         private static void AddLimit(ref string query, int limit)
