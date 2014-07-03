@@ -1,8 +1,11 @@
-﻿using System.Xml.Linq;
+﻿using System;
+using System.Runtime.Serialization;
+using System.Xml.Linq;
 using ZuoraMagic.Entities;
 
 namespace ZuoraMagic.ExportApi.Models
 {
+    [Serializable]
     internal class Export : ZObject
     {
         public string Format { get; set; }

@@ -15,7 +15,7 @@ namespace ZuoraMagic.Extensions
 
         internal static IEnumerable<string> GetPropertyNames(this Type type)
         {
-            return type.GetCachedProperties().GetNames();
+            return type.GetPrimitiveProperties().ToArray().GetNames();
         }
 
         internal static IEnumerable<string> GetNames(this PropertyInfo[] infos)
@@ -32,6 +32,20 @@ namespace ZuoraMagic.Extensions
             return info.GetCustomAttribute<ZuoraNameAttribute>() != null
                 ? info.GetCustomAttribute<ZuoraNameAttribute>().Name ?? info.Name
                 : info.Name;
+        }
+
+        internal static string GetSelectName(this PropertyInfo info, string typeName)
+        {
+            string propertyName = info.Name;
+            ZuoraNameAttribute attribute = info.GetCustomAttribute<ZuoraNameAttribute>();
+
+            if (attribute != null)
+            {
+                propertyName = attribute.Name;
+                if (!string.IsNullOrEmpty(attribute.MappingOverride)) typeName = attribute.MappingOverride;
+            }
+
+            return typeName + "." + propertyName;
         }
 
         internal static string GetName(this Type type)
@@ -97,10 +111,10 @@ namespace ZuoraMagic.Extensions
         internal static IEnumerable<PropertyInfo> GetPrimitiveProperties(this Type type)
         {
             return from property in type.GetCachedProperties()
-                   let propertyType = property.PropertyType
-                   let zObjectType = typeof(ZObject)
-                   where !zObjectType.IsAssignableFrom(propertyType) || !propertyType.IsGenericType
-                   select property;
+                let propertyType = property.PropertyType
+                let zObjectType = typeof(ZObject)
+                where !zObjectType.IsAssignableFrom(propertyType) && !propertyType.IsGenericType
+                select property;
         }
 
         internal static string GetValue(this XmlNode node, string name)
@@ -120,14 +134,12 @@ namespace ZuoraMagic.Extensions
                     string name = type.Name;
                     if (PropertyInfos.ContainsKey(type.Name))
                     {
-                        propertyInfos = PropertyInfos[name]
-                            .Where(x => x.GetCustomAttribute<ZuoraIgnoreAttribute>() != null)
-                            .ToArray();
+                        propertyInfos = PropertyInfos[name].ToArray();
                     }
                     else
                     {
                         propertyInfos = type.GetProperties()
-                            .Where(x => x.GetCustomAttribute<ZuoraIgnoreAttribute>() != null)
+                            .Where(x => x.GetCustomAttribute<ZuoraIgnoreAttribute>() == null)
                             .ToArray();
                         PropertyInfos.Add(name, propertyInfos);
                     }

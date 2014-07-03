@@ -2,6 +2,7 @@
 {
     public class ZuoraExportOptions
     {
+        public bool RetrieveSpecificData { get; set; }
         public int WaitTime { get; set; }
         public int? Timeout { get; set; }
         public bool ReRunOnTimeout { get; set; }

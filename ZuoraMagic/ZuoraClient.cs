@@ -110,6 +110,7 @@ namespace ZuoraMagic
 
                     if (_config.UseSessionStore) _sessionStore.StoreSession(session);
                     _config.Session = session;
+                    _config.InstanceUrl = session.InstanceUrl;
 
                     return session;
                 }
@@ -358,7 +359,7 @@ namespace ZuoraMagic
 
         public virtual Stream RetrieveExportStream(string id)
         {
-            string url = string.Format("{0}/apps/api/file/{1}.csv", _config.InstanceUrl, id);
+            string url = string.Format("{0}/apps/api/file/{1}.csv", _config.Session.InstanceUrl, id);
             return ResponseReader.ReadStream(url, _config.Username, _config.Password);
         }
 
@@ -401,7 +402,7 @@ namespace ZuoraMagic
                 expiredTime += options.WaitTime;
             } while (export.Status != "Completed");
 
-            return export.Id;
+            return export.FileId;
         }
 
         private T PerformGenericRequest<T>(HttpRequest request)
