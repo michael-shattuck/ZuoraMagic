@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using FastMember;
+using ZuoraMagic.Attributes;
 using ZuoraMagic.Entities;
 using ZuoraMagic.Extensions;
 using ZuoraMagic.ORM.Models;
@@ -34,7 +35,7 @@ namespace ZuoraMagic.ORM
 
             foreach (PropertyInfo property in type.GetCachedProperties())
             {
-                string name = typeName + "." + property.GetName();
+                string name = property.GetMappingName(typeName) + "." + property.GetName();
                 if (!row.ContainsKey(name) || string.IsNullOrEmpty(row[name])) continue;
                 SetProperty(obj, row[name], property, accessor);
             }
@@ -49,8 +50,12 @@ namespace ZuoraMagic.ORM
         {
             foreach (PropertyInfo property in type.GetObjectProperties())
             {
+                string mappingName = null;
                 string propertyName = property.Name;
                 Type propertyType = property.PropertyType;
+                ZuoraNameAttribute attribute = property.GetCustomAttribute<ZuoraNameAttribute>();
+                if (attribute != null && !string.IsNullOrEmpty(attribute.MappingOverride)) mappingName = attribute.MappingOverride;
+                
                 if (parent != null && property.PropertyType == parent) continue;
                 object value;
 
@@ -59,7 +64,7 @@ namespace ZuoraMagic.ORM
                     propertyType = propertyType.GetGenericArguments()[0];
                     if (parent != null && property.PropertyType == parent) continue;
                     value = accessor[item, propertyName] ?? CreateGenericList(propertyType);
-                    dynamic obj = ParseItem(propertyType, row, GetAccessor(propertyType), type);
+                    dynamic obj = ParseItem(propertyType, row, GetAccessor(propertyType), mappingName, type);
                     if (obj == null) continue;
                     dynamic actualValue = Cast(value, CreateGenericList(obj, CastList(obj, value)));
                     accessor[item, propertyName] = actualValue;
@@ -67,7 +72,7 @@ namespace ZuoraMagic.ORM
                 }
 
                 if (accessor[item, propertyName] != null) continue;
-                value = ParseItem(propertyType, row, GetAccessor(propertyType), type);
+                value = ParseItem(propertyType, row, GetAccessor(propertyType), mappingName, type);
                 if (value != null) accessor[item, propertyName] = value;
             }
         }
@@ -85,10 +90,10 @@ namespace ZuoraMagic.ORM
                 : new List<T> { obj };
         }
 
-        private static ZObject ParseItem(Type type, CsvRow row, TypeAccessor accessor, Type parent = null)
+        private static ZObject ParseItem(Type type, CsvRow row, TypeAccessor accessor, string typeName, Type parent = null)
         {
             object obj = Activator.CreateInstance(type);
-            string typeName = type.GetName();
+            if (typeName == null) typeName = type.GetName();
 
             foreach (PropertyInfo property in type.GetCachedProperties())
             {

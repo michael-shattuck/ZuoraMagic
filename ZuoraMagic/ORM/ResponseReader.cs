@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using FastMember;
 using LumenWorks.Framework.IO.Csv;
 using ZuoraMagic.Entities;
+using ZuoraMagic.Exceptions;
 using ZuoraMagic.Extensions;
 using ZuoraMagic.ORM.BaseRequestTemplates;
 using ZuoraMagic.ORM.Models;
@@ -47,7 +48,23 @@ namespace ZuoraMagic.ORM
 
         internal static T ReadGenericResponse<T>(XmlDocument document)
         {
+            ValidateDocument(document);
             return ReadSimpleResponse<T>(GetNamedNodes(document, "result")[0], document);
+        }
+
+        private static void ValidateDocument(XmlDocument document)
+        {
+            XmlNode node = GetNamedNode(document, "Success");
+            if (node != null && node.InnerText == "false")
+            {
+                XmlNodeList errorMessageNodes = GetNamedNodes(document, "Message");
+                IList<XmlNode> errors = new List<XmlNode>(errorMessageNodes.Cast<XmlNode>());
+                string message = errorMessageNodes.Count > 0
+                    ? "The following errors occurred: " + string.Join(", ", errors.Select(x => x.InnerText))
+                    : null;
+
+                throw new ZuoraRequestException(message);
+            }
         }
 
         internal static T ReadSimpleResponse<T>(XmlNode node, XmlDocument document)
@@ -115,6 +132,12 @@ namespace ZuoraMagic.ORM
         private static XmlNodeList GetNamedNodes(XmlDocument document, string name)
         {
             return document.GetElementsByTagName(name, ZuoraNamespaces.Request);
+        }
+
+        private static XmlNode GetNamedNode(XmlDocument document, string name)
+        {
+            XmlNodeList nodes = GetNamedNodes(document, name);
+            return nodes.Count > 0 ? nodes[0] : null;
         }
 
         private static XElement[] GetNamedNodes(XmlNode node, string name)

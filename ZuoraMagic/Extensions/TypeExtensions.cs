@@ -65,9 +65,10 @@ namespace ZuoraMagic.Extensions
         internal static string GetMappingName(this PropertyInfo info, string defaultName = null)
         {
             ZuoraNameAttribute attribute = info.GetCustomAttribute<ZuoraNameAttribute>();
-            if (attribute == null) return defaultName;
+            if (attribute != null && !string.IsNullOrEmpty(attribute.MappingOverride)) 
+                return attribute.MappingOverride;
 
-            return attribute.MappingOverride ?? defaultName;
+            return defaultName;
         }
 
         internal static IEnumerable<PropertyInfo> GetObjectProperties(this Type type)

@@ -15,7 +15,7 @@ namespace ZuoraMagic.Http
     ///     http calls.
     /// </summary>
     internal class HttpClient : IDisposable
-    {   
+    {
         /// <summary>
         ///     Abstraction method for performing a http request.
         /// </summary>
