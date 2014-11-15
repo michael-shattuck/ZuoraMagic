@@ -131,7 +131,10 @@ namespace ZuoraMagic.ORM
 
         private static XmlNodeList GetNamedNodes(XmlDocument document, string name)
         {
-            return document.GetElementsByTagName(name, ZuoraNamespaces.Request);
+            var xnsMgr = new XmlNamespaceManager(document.NameTable);
+            xnsMgr.AddNamespace("z", ZuoraNamespaces.Request);
+            xnsMgr.PushScope();
+            return document.SelectNodes(string.Format("//z:{0}[count(*)>0]", name), xnsMgr);
         }
 
         private static XmlNode GetNamedNode(XmlDocument document, string name)
