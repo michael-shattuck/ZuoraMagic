@@ -11,14 +11,11 @@ namespace ZuoraMagic.SoapApi
 {
     internal class SoapRequestManager
     {
-        internal static string SoapUrl = "/apps/services/a/54.0";
-
-        // TODO: Add configuration of endpoint
         internal static HttpRequest GetLoginRequest(ZuoraConfig config)
         {
             HttpRequest request = new HttpRequest
             {
-                Url = config.InstanceUrl + SoapUrl,
+                Url = config.InstanceUrl + config.SoapUrl,
                 Body = SoapCommands.Login(config.Username, config.Password),
                 Method = RequestType.POST,
             };
@@ -37,7 +34,7 @@ namespace ZuoraMagic.SoapApi
         {
             HttpRequest request = new HttpRequest
             {
-                Url = session.InstanceUrl + SoapUrl,
+                Url = session.InstanceUrl + session.SoapUrl,
                 Body = SoapCommands.Query(query, limit, session.SessionId),
                 Method = RequestType.POST,
             };
@@ -51,7 +48,7 @@ namespace ZuoraMagic.SoapApi
             string body = SoapCommands.CrudOperation(operation, session.SessionId);
             HttpRequest request = new HttpRequest
             {
-                Url = session.InstanceUrl + SoapUrl,
+                Url = session.InstanceUrl + session.SoapUrl,
                 Body = body,
                 Method = RequestType.POST,
             };
@@ -64,7 +61,7 @@ namespace ZuoraMagic.SoapApi
         {
             HttpRequest request = new HttpRequest
             {
-                Url = session.InstanceUrl + SoapUrl,
+                Url = session.InstanceUrl + session.SoapUrl,
                 Body = SoapCommands.QueryMore(queryLocator, limit, session.SessionId),
                 Method = RequestType.POST,
             };
