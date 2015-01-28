@@ -17,7 +17,7 @@ namespace ZuoraMagic.Configuration
         {
             get
             {
-                // Default value present to prevent deprecating developers using the 2.9.9 and earlier implementation
+                // Default value present to prevent deprecating developers using the 2.9.9 and earlier implementations
 
                 if (string.IsNullOrWhiteSpace(this.soapUrl))
                 {
