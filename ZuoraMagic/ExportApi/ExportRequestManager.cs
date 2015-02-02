@@ -16,7 +16,7 @@ namespace ZuoraMagic.ExportApi
         {
             HttpRequest request = new HttpRequest
             {
-                Url = session.InstanceUrl + SoapUrl,
+                Url = session.InstanceUrl + session.SoapUrl,
                 Body = ExportCommands.CreateExport(new Export
                 {
                     Format = "csv",

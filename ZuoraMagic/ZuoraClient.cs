@@ -104,6 +104,7 @@ namespace ZuoraMagic
                     Uri instanceUrl = new Uri(result.ServerUrl);
                     session = new ZuoraSession
                     {
+                        SoapUrl = _config.SoapUrl,
                         InstanceUrl = instanceUrl.Scheme + "://" + instanceUrl.Host,
                         SessionId = result.SessionId
                     };
